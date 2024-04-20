@@ -18,11 +18,6 @@ pipeline {
             steps {
                 script{
                     try {
-                        unstash 'vendor'
-                    } catch(Exception e) {
-
-                    }
-                    try {
                         unarchive (mapping: [
                             "build-${PLATFORM}-${COMPILER}/": "build"
                         ])
