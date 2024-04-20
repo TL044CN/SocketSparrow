@@ -16,6 +16,7 @@ endif()
 # Add tests
 add_executable(${PROJECT_NAME}_tests
     test_main.cpp
+    test_Utils.cpp
 )
 
 # Link required libraries
@@ -75,7 +76,7 @@ if(NOT ${PROJECT_NAME}_IS_SUBMODULE)
 
       add_custom_target(coverage
         COMMAND LLVM_PROFILE_FILE=${PROFRAW_FILE} ${CMAKE_MAKE_PROGRAM} test
-        COMMAND llvm-profdata merge -sparse ${CMAKE_BINARY_DIR}/tests/${PROJECT_NAME}-*.profraw ${DEFAULT_PROFRAW_FILE} -o ${PROFDATA_FILE}
+        COMMAND llvm-profdata merge -sparse tests/${PROJECT_NAME}-*.profraw ${DEFAULT_PROFRAW_FILE} -o ${PROFDATA_FILE}
         COMMAND ${GCOV} export -format=lcov tests/${PROJECT_NAME}_tests -instr-profile=${PROFDATA_FILE} > coverage.lcov
         COMMAND ${LCOV} --summary coverage.lcov
         COMMAND ${GENHTML} coverage.lcov --output-directory out

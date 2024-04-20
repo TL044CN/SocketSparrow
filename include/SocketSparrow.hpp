@@ -11,7 +11,9 @@
 #pragma once
 #include "Endpoint.hpp"
 #include "Enums.hpp"
+#include "Exceptions.hpp"
 #include "Socket.hpp"
+#include "UDPPacket.hpp"
 #include "Util.hpp"
 
 /**
