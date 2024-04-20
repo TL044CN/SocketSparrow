@@ -66,7 +66,11 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
 endif()
 
 add_library(${PROJECT_NAME}
-    source/Network.cpp
+    source/Endpoint.cpp
+    source/Exceptions.cpp
+    source/Socket.cpp
+    source/UDPPacket.cpp
+    source/Util.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
