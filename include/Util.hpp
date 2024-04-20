@@ -33,7 +33,7 @@ namespace SocketSparrow::Util {
      * @param family Address Family as an integer (AF_INET, AF_INET6, etc.)
      * @return AddressFamily Address Family as an enum
      */
-    AddressFamily getAddressFamily(int family);
+    AddressFamily getAddressFamily(int nativeFamily);
 
     /**
      * @brief Get the integer representation of an Address Family
@@ -57,7 +57,7 @@ namespace SocketSparrow::Util {
      * @param type Socket Type as an integer (SOCK_STREAM, SOCK_DGRAM, etc.)
      * @return SocketType Socket Type as an enum
      */
-    SocketType getSocketType(int type);
+    SocketType getSocketType(int nativeType);
 
     /**
      * @brief Get the integer representation of a Socket Type

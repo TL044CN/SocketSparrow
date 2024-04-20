@@ -74,12 +74,12 @@ SocketType getSocketType(const std::string& type) {
     return SocketType::Unknown;
 }
 
-SocketType getSocketType(int type) {
-    switch (type){
+SocketType getSocketType(int nativeType) {
+    switch (nativeType){
         case SOCK_STREAM:
         case SOCK_DGRAM:
         case SOCK_RAW:
-            return static_cast<SocketType>(type);
+            return static_cast<SocketType>(nativeType);
         default:
             break;
     }
