@@ -17,28 +17,28 @@ namespace SocketSparrow {
      * @brief Address Family of a Network Endpoint
      */
     enum class AddressFamily {
-        IPv4,
-        IPv6
+        IPv4,   ///< Internet Protocol Version 4
+        IPv6    ///< Internet Protocol Version 6
     };
 
     /**
      * @brief Protocol of a Network Socket
      */
     enum class SocketType {
-        STREAM,
-        DATAGRAM,
-        TCP = STREAM,
-        UDP = DATAGRAM
+        STREAM,         ///< TCP (Transmission Control Protocol)
+        DATAGRAM,       ///< UDP (User Datagram Protocol)
+        TCP = STREAM,   ///< TCP (Transmission Control Protocol)
+        UDP = DATAGRAM  ///< UDP (User Datagram Protocol)
     };
 
     /**
      * @brief State of a Network Socket
      */
     enum class SocketState {
-        Closed,
-        Open,
-        Listening,
-        Connected
+        Closed,     ///< Not Open
+        Open,       ///< Open but not Connected
+        Listening,  ///< Listening for Incoming Connections
+        Connected   ///< Connected to a Remote Endpoint
     };
 
 } // namespace SocketSparrow
