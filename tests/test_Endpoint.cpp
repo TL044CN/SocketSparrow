@@ -30,6 +30,7 @@ TEST_CASE("Endpoint Creation", "[Endpoint]") {
         REQUIRE(endpoint.getPort() == 8080);
         REQUIRE_NOTHROW(endpoint.c_addr());
         REQUIRE_NOTHROW(endpoint.c_size());
+        REQUIRE(endpoint.c_size() == sizeof(sockaddr_in));
     }
 
     SECTION("Endpoint Destructor") {
