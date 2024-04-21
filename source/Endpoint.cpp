@@ -25,7 +25,7 @@ Endpoint::Endpoint(sockaddr* addr, socklen_t size) {
     mAddressFamily = Util::getAddressFamily(mSockaddr.base.sa_family);
 }
 
-Endpoint::Endpoint(std::string hostname, uint16_t port, AddressFamily af)
+Endpoint::Endpoint(const std::string& hostname, uint16_t port, AddressFamily af)
     : mAddressFamily(af) {
 
     struct addrinfo hints = {};
