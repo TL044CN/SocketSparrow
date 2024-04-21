@@ -14,10 +14,14 @@ namespace SocketSparrow {
 using namespace Util;
 
 Socket::Socket(int fd, std::shared_ptr<Endpoint> endpoint, SocketType protocol)
-    : mNativeSocket(fd), mEndpoint(endpoint), mProtocol(protocol) {
+    : mNativeSocket(fd),
+    mProtocol(protocol),
+    mAddressFamily(endpoint->getAddressFamily()),
+    mEndpoint(endpoint) {
     if ( mNativeSocket == -1 ) {
         throw SocketException(errno, "Failed to create Socket");
     }
+    mState = SocketState::Open;
 }
 
 Socket::Socket(AddressFamily af, SocketType protocol)
@@ -27,13 +31,16 @@ Socket::Socket(AddressFamily af, SocketType protocol)
         getNativeSocketType(mProtocol),
         0
     );
+
     if ( mNativeSocket == -1 ) {
         throw SocketException(errno, "Failed to create Socket");
     }
+    mState = SocketState::Open;
 }
 
 Socket::Socket(AddressFamily af, std::shared_ptr<Endpoint> endpoint)
-    : mAddressFamily(af), mProtocol(SocketType::TCP) {
+    : mAddressFamily(af),
+    mProtocol(SocketType::TCP) {
     mNativeSocket = socket(
         getNativeAddressFamily(mAddressFamily),
         getNativeSocketType(mProtocol),
@@ -44,11 +51,14 @@ Socket::Socket(AddressFamily af, std::shared_ptr<Endpoint> endpoint)
         throw SocketException(errno, "Failed to create Socket");
     }
 
+    mState = SocketState::Open;
+
     bind(endpoint);
 }
 
 Socket::~Socket() {
     close(mNativeSocket);
+    mState = SocketState::Closed;
 }
 
 
@@ -61,6 +71,7 @@ void Socket::bind(std::shared_ptr<Endpoint> endpoint) {
     if ( ::bind(mNativeSocket, mEndpoint->c_addr(), mEndpoint->c_size()) == -1 ) {
         throw SocketException(errno, "Failed to bind to endpoint");
     }
+
 }
 
 void Socket::bindToPort(uint16_t port) {
@@ -78,6 +89,8 @@ void Socket::connect(std::shared_ptr<Endpoint> endpoint) {
     if ( ::connect(mNativeSocket, endpoint->c_addr(), endpoint->c_size()) == -1 ) {
         throw SocketException(errno, "Failed to connect");
     }
+
+    mState = SocketState::Connected;
 }
 
 void Socket::listen(int backlog) {
@@ -85,9 +98,15 @@ void Socket::listen(int backlog) {
         throw SocketException("Cannot listen on a UDP socket");
     }
 
+    if( mEndpoint == nullptr ) {
+        throw SocketException("Cannot listen without binding to an endpoint");
+    }
+
     if ( ::listen(mNativeSocket, backlog) == -1 ) {
         throw SocketException(errno, "Failed to listen");
     }
+
+    mState = SocketState::Listening;
 }
 
 std::shared_ptr<Socket> Socket::accept() {
@@ -95,8 +114,17 @@ std::shared_ptr<Socket> Socket::accept() {
         throw SocketException("Cannot accept on a UDP socket");
     }
 
+    if( mEndpoint == nullptr ) {
+        throw SocketException("Cannot accept without binding to an endpoint");
+    }
+
+    if( mState != SocketState::Listening ) {
+        throw SocketException("Cannot accept without listening");
+    }
+
     sockaddr_storage clientAddr;
     socklen_t clientAddrSize = sizeof(clientAddr);
+
     int clientSocket = ::accept(mNativeSocket, (sockaddr*)&clientAddr, &clientAddrSize);
     if ( clientSocket == -1 ) {
         throw SocketException(errno, "Failed to accept");
@@ -104,18 +132,20 @@ std::shared_ptr<Socket> Socket::accept() {
 
     std::shared_ptr<Endpoint> clientEndpoint = std::make_shared<Endpoint>(clientAddr, clientAddrSize);
     Socket* Connection = new Socket(clientSocket, clientEndpoint, mProtocol);
+    Connection->mState = SocketState::Connected;
+    
     return std::shared_ptr<Socket>(Connection);
 }
 
-void Socket::setBroadcast(bool broadcast) {
-    int opt = broadcast ? 1 : 0;
+void Socket::setBroadcast(bool enable) {
+    int opt = enable ? 1 : 0;
     if ( setsockopt(mNativeSocket, SOL_SOCKET, SO_BROADCAST, &opt, sizeof(opt)) == -1 ) {
         throw SocketException("Failed to set broadcast mode");
     }
 }
 
-void Socket::enablePortReuse(bool reuse) {
-    int opt = reuse ? 1 : 0;
+void Socket::enablePortReuse(bool enable) {
+    int opt = enable ? 1 : 0;
     if ( setsockopt(mNativeSocket, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) == -1 ) {
         throw SocketException("Failed to set port reuse mode");
     }

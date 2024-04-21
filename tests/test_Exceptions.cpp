@@ -12,6 +12,90 @@ TEST_CASE("Exception Classes", "[Exceptions]") {
         REQUIRE_THROWS_AS([] { throw SocketSparrowException(); }(), SocketSparrowException);
     }
 
+    SECTION("EndpointException") {
+        REQUIRE_NOTHROW(EndpointException());
+        REQUIRE_NOTHROW(EndpointException("Custom Message"));
+
+        REQUIRE_THROWS_WITH([] { throw EndpointException(); }(), "Endpoint Exception");
+        REQUIRE_THROWS_WITH([] { throw EndpointException("Custom Message"); }(), "Custom Message");
+
+        REQUIRE_THROWS_AS([] { throw EndpointException(); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw EndpointException("Custom Message"); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw EndpointException(); }(), SocketSparrowException);
+        REQUIRE_THROWS_AS([] { throw EndpointException("Custom Message"); }(), SocketSparrowException);
+    }
+
+    SECTION("InvalidAddressFamilyException") {
+        REQUIRE_NOTHROW(InvalidAddressFamilyException());
+        REQUIRE_NOTHROW(InvalidAddressFamilyException("Custom Message"));
+        REQUIRE_NOTHROW(InvalidAddressFamilyException(AddressFamily::IPv4));
+        REQUIRE_NOTHROW(InvalidAddressFamilyException(AddressFamily::IPv6, "Custom Message"));
+
+        REQUIRE_THROWS_WITH([] { throw InvalidAddressFamilyException(); }(), "Invalid Address Family");
+        REQUIRE_THROWS_WITH([] { throw InvalidAddressFamilyException("Custom Message"); }(), "Custom Message");
+        REQUIRE_THROWS_WITH([] { throw InvalidAddressFamilyException(AddressFamily::IPv4); }(), "Invalid Address Family: AF_INET");
+        REQUIRE_THROWS_WITH([] { throw InvalidAddressFamilyException(AddressFamily::IPv6, "Custom Message"); }(), "Custom Message: AF_INET6");
+
+        REQUIRE_THROWS_AS([] { throw InvalidAddressFamilyException(); }(), InvalidAddressFamilyException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressFamilyException("Custom Message"); }(), InvalidAddressFamilyException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressFamilyException(AddressFamily::IPv4); }(), InvalidAddressFamilyException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressFamilyException(AddressFamily::IPv6, "Custom Message"); }(), InvalidAddressFamilyException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressFamilyException(); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressFamilyException("Custom Message"); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressFamilyException(AddressFamily::IPv4); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressFamilyException(AddressFamily::IPv6, "Custom Message"); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressFamilyException(); }(), SocketSparrowException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressFamilyException("Custom Message"); }(), SocketSparrowException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressFamilyException(AddressFamily::IPv4); }(), SocketSparrowException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressFamilyException(AddressFamily::IPv6, "Custom Message"); }(), SocketSparrowException);
+    }
+
+    SECTION("InvalidPort") {
+        REQUIRE_NOTHROW(InvalidPortException());
+        REQUIRE_NOTHROW(InvalidPortException("Custom Message"));
+        REQUIRE_NOTHROW(InvalidPortException(8080));
+        REQUIRE_NOTHROW(InvalidPortException(8080, "Custom Message"));
+
+        REQUIRE_THROWS_WITH([] { throw InvalidPortException(); }(), "Invalid Port");
+        REQUIRE_THROWS_WITH([] { throw InvalidPortException("Custom Message"); }(), "Custom Message");
+        REQUIRE_THROWS_WITH([] { throw InvalidPortException(8080); }(), "Invalid Port: 8080");
+        REQUIRE_THROWS_WITH([] { throw InvalidPortException(8080, "Custom Message"); }(), "Custom Message: 8080");
+
+        REQUIRE_THROWS_AS([] { throw InvalidPortException(); }(), InvalidPortException);
+        REQUIRE_THROWS_AS([] { throw InvalidPortException("Custom Message"); }(), InvalidPortException);
+        REQUIRE_THROWS_AS([] { throw InvalidPortException(8080); }(), InvalidPortException);
+        REQUIRE_THROWS_AS([] { throw InvalidPortException(8080, "Custom Message"); }(), InvalidPortException);
+        REQUIRE_THROWS_AS([] { throw InvalidPortException(); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw InvalidPortException("Custom Message"); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw InvalidPortException(8080); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw InvalidPortException(8080, "Custom Message"); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw InvalidPortException(); }(), SocketSparrowException);
+        REQUIRE_THROWS_AS([] { throw InvalidPortException("Custom Message"); }(), SocketSparrowException);
+        REQUIRE_THROWS_AS([] { throw InvalidPortException(8080); }(), SocketSparrowException);
+        REQUIRE_THROWS_AS([] { throw InvalidPortException(8080, "Custom Message"); }(), SocketSparrowException);
+    }
+
+    SECTION("InvalidAddressException") {
+        REQUIRE_NOTHROW(InvalidAddressException());
+        REQUIRE_NOTHROW(InvalidAddressException("Custom Message"));
+        REQUIRE_NOTHROW(InvalidAddressException("0.0.0.0.0", "Custom Message"));
+
+        REQUIRE_THROWS_WITH([] { throw InvalidAddressException(); }(), "Invalid Address");
+        REQUIRE_THROWS_WITH([] { throw InvalidAddressException("Custom Message"); }(), "Custom Message");
+        REQUIRE_THROWS_WITH([] { throw InvalidAddressException("0.0.0.0.0", "Custom Message"); }(), "Custom Message: 0.0.0.0.0");
+
+        REQUIRE_THROWS_AS([] { throw InvalidAddressException(); }(), InvalidAddressException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressException("Custom Message"); }(), InvalidAddressException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressException("0.0.0.0.0", "Custom Message"); }(), InvalidAddressException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressException(); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressException("Custom Message"); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressException("0.0.0.0.0", "Custom Message"); }(), EndpointException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressException(); }(), SocketSparrowException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressException("Custom Message"); }(), SocketSparrowException);
+        REQUIRE_THROWS_AS([] { throw InvalidAddressException("0.0.0.0.0", "Custom Message"); }(), SocketSparrowException);
+    }
+
+
     SECTION("SocketException") {
         REQUIRE_NOTHROW(SocketException());
 

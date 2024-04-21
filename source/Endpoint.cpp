@@ -9,6 +9,10 @@ namespace SocketSparrow {
 Endpoint::Endpoint(sockaddr* addr, socklen_t size) {
     memcpy(&mSockaddr.base, addr, size);
     mAddressFamily = Util::getAddressFamily(mSockaddr.base.sa_family);
+
+    if ( mAddressFamily == AddressFamily::Unknown ) {
+        throw InvalidAddressException("Invalid Address");
+    }
 }
 
 Endpoint::Endpoint(std::string hostname, uint16_t port, AddressFamily af)
@@ -26,9 +30,9 @@ Endpoint::Endpoint(std::string hostname, uint16_t port, AddressFamily af)
 
         struct addrinfo* res;
         if ( getaddrinfo(hostname.c_str(), NULL, &hints, &res) != 0 ) {
-            throw SocketException("Failed to resolve hostname");
+            throw InvalidAddressException(hostname, "Failed to resolve hostname");
         }
-        struct sockaddr_in* ipv4 = (struct sockaddr_in*)res->ai_addr;
+        struct sockaddr_in* ipv4 = reinterpret_cast<struct sockaddr_in*>(res->ai_addr);
         mSockaddr.ipv4.sin_addr.s_addr = ipv4->sin_addr.s_addr;
         freeaddrinfo(res);
     }
@@ -40,9 +44,9 @@ Endpoint::Endpoint(std::string hostname, uint16_t port, AddressFamily af)
 
         struct addrinfo* res6;
         if ( getaddrinfo(hostname.c_str(), NULL, &hints, &res6) != 0 ) {
-            throw SocketException("Failed to resolve hostname");
+            throw InvalidAddressException(hostname, "Failed to resolve hostname");
         }
-        struct sockaddr_in6* ipv6 = (struct sockaddr_in6*)res6->ai_addr;
+        struct sockaddr_in6* ipv6 = reinterpret_cast<struct sockaddr_in6*>(res6->ai_addr);
         mSockaddr.ipv6.sin6_addr = ipv6->sin6_addr;
         freeaddrinfo(res6);
 
@@ -60,6 +64,10 @@ Endpoint::Endpoint(in_addr_t ip, uint16_t port) {
     mSockaddr.ipv4.sin_family = Util::getNativeAddressFamily(mAddressFamily);
     mSockaddr.ipv4.sin_port = htons(port);
     mSockaddr.ipv4.sin_addr.s_addr = ip;
+
+    if( ip == INADDR_NONE ) {
+        throw InvalidAddressException("Invalid IP Address");
+    }
 }
 
 Endpoint::Endpoint(AddressFamily af, uint16_t port)
@@ -76,7 +84,7 @@ Endpoint::Endpoint(AddressFamily af, uint16_t port)
         mSockaddr.ipv6.sin6_addr = in6addr_any;
         break;
     default:
-        throw SocketException("Unknown Address Family");
+        throw InvalidAddressFamilyException(mAddressFamily, "Invalid Address Family");
         break;
     }
 
@@ -85,6 +93,10 @@ Endpoint::Endpoint(AddressFamily af, uint16_t port)
 Endpoint::Endpoint(sockaddr_storage addr, socklen_t size) {
     memcpy(&mSockaddr.base, &addr, size);
     mAddressFamily = Util::getAddressFamily(mSockaddr.base.sa_family);
+
+    if ( mAddressFamily == AddressFamily::Unknown ) {
+        throw InvalidAddressException();
+    }
 }
 
 Endpoint::~Endpoint() {

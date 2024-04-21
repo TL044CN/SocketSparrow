@@ -30,6 +30,7 @@ namespace SocketSparrow {
         SocketType mProtocol;
         AddressFamily mAddressFamily;
         std::shared_ptr<Endpoint> mEndpoint;
+        SocketState mState = SocketState::Unknown;
 
     /// Private Constructors
 
