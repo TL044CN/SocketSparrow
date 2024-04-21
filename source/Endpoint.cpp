@@ -3,16 +3,26 @@
 #include "Exceptions.hpp"
 
 #include <cstring>
+#include <assert.h>
+
 
 namespace SocketSparrow {
 
 Endpoint::Endpoint(sockaddr* addr, socklen_t size) {
+    if( addr == nullptr ) {
+        throw InvalidAddressException();
+    }
+
+    if(addr->sa_family == AF_INET && size != sizeof(sockaddr_in)) {
+        throw InvalidAddressException();
+    } else if(addr->sa_family == AF_INET6 && size != sizeof(sockaddr_in6)) {
+        throw InvalidAddressException();
+    } else if(addr->sa_family != AF_INET && addr->sa_family != AF_INET6) {
+        throw InvalidAddressFamilyException();
+    }
+
     memcpy(&mSockaddr.base, addr, size);
     mAddressFamily = Util::getAddressFamily(mSockaddr.base.sa_family);
-
-    if ( mAddressFamily == AddressFamily::Unknown ) {
-        throw InvalidAddressException("Invalid Address");
-    }
 }
 
 Endpoint::Endpoint(std::string hostname, uint16_t port, AddressFamily af)
@@ -49,12 +59,10 @@ Endpoint::Endpoint(std::string hostname, uint16_t port, AddressFamily af)
         struct sockaddr_in6* ipv6 = reinterpret_cast<struct sockaddr_in6*>(res6->ai_addr);
         mSockaddr.ipv6.sin6_addr = ipv6->sin6_addr;
         freeaddrinfo(res6);
-
     }
     break;
     default:
-        throw SocketException("Unknown Address Family");
-        break;
+        throw InvalidAddressFamilyException(af);
     }
 
 }
@@ -65,7 +73,7 @@ Endpoint::Endpoint(in_addr_t ip, uint16_t port) {
     mSockaddr.ipv4.sin_port = htons(port);
     mSockaddr.ipv4.sin_addr.s_addr = ip;
 
-    if( ip == INADDR_NONE ) {
+    if( ip == INADDR_NONE || ip == 0) {
         throw InvalidAddressException("Invalid IP Address");
     }
 }
@@ -85,7 +93,6 @@ Endpoint::Endpoint(AddressFamily af, uint16_t port)
         break;
     default:
         throw InvalidAddressFamilyException(mAddressFamily, "Invalid Address Family");
-        break;
     }
 
 }
@@ -118,11 +125,10 @@ const sockaddr* Endpoint::c_addr() const {
 
 socklen_t Endpoint::c_size() const {
     switch ( mAddressFamily ) {
-    case AddressFamily::IPv4: return sizeof(sockaddr_in);
-    case AddressFamily::IPv6: return sizeof(sockaddr_in6);
-    case AddressFamily::Unknown: return sizeof(sockaddr);
+        case AddressFamily::IPv4: return sizeof(sockaddr_in);
+        case AddressFamily::IPv6: return sizeof(sockaddr_in6);
+        default: throw InvalidAddressFamilyException(mAddressFamily);
     }
-    return 0;
 }
 
 }   // namespace SocketSparrow
