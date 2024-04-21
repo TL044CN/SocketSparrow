@@ -19,6 +19,7 @@ add_executable(${PROJECT_NAME}_tests
     test_Utils.cpp
     test_Endpoint.cpp
     test_Socket.cpp
+    test_Exceptions.cpp
 )
 
 # Link required libraries
