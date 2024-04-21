@@ -47,6 +47,7 @@ pipeline {
                         . venv/bin/activate
                         pip install lcov_cobertura
                     """
+                    sh "apt install -y cppcheck"
                 }
             }
         }
@@ -75,28 +76,35 @@ pipeline {
                             [criticality: 'NOTE', integerThreshold: 60, metric: 'LINE', threshold: 60.0],
                             [criticality: 'NOTE', integerThreshold: 60, metric: 'METHOD', threshold: 60.0]
                         ],
-                        tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
+                        tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']]
+                    )
                 }
             }
         }
         stage('Static Analysis') {
             steps {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                    sh """
-                        apt install -y cppcheck python3-venv
-                        python3 -m venv venv
-                        . venv/bin/activate
-                        pip install lizard
-                        cppcheck --enable=all --inconclusive --xml --xml-version=2 -I include/ source/* include/* 2> cppcheck.xml
-                        lizard -X "source/*" "include/*" > lizard.xml
-                    """
-
-                    recordIssues(
-                        sourceCodeRetention: 'LAST_BUILD',
-                        tools: [
-                            cppCheck(pattern: 'cppcheck.xml'),
-                        ]
-                    )
+                    sh "cppcheck --enable=all --inconclusive --xml --xml-version=2 -I include/ source/* include/* 2> cppcheck.xml"
+                    script {
+                        def previousBuild = currentBuild.previousBuild
+                        if(previousBuild != null) {
+                            def previousBuildId = previousBuild.id
+                            recordIssues(
+                                sourceCodeRetention: 'LAST_BUILD',
+                                reference: previousBuildId,
+                                tools: [
+                                    cppCheck(pattern: 'cppcheck.xml'),
+                                ]
+                            )
+                        } else {
+                            recordIssues(
+                                sourceCodeRetention: 'LAST_BUILD',
+                                tools: [
+                                    cppCheck(pattern: 'cppcheck.xml'),
+                                ]
+                            )
+                        }
+                    }
                 }
             }
         }
