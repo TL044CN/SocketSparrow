@@ -9,9 +9,8 @@ const char* SocketSparrowException::what() const noexcept {
 
 SocketException::SocketException(): mMessage("Socket Exception") {}
 SocketException::SocketException(const std::string& message): mMessage(message) {}
-SocketException::SocketException(int error, const std::string& message) {
-    mMessage = message + ": [" + std::to_string(error) + "] " + strerror(error);
-}
+SocketException::SocketException(int error, const std::string& message)
+: mMessage(message + ": [" + std::to_string(error) + "] " + strerror(error)) {}
 
 const char* SocketException::what() const noexcept {
     return mMessage.c_str();
