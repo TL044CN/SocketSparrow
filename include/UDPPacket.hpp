@@ -16,7 +16,7 @@ namespace SocketSparrow {
      * @brief Abstraction for a UDP Packet
      */
     struct UDPPacket {
-
+        
     };
 
 } // namespace SocketSparrow

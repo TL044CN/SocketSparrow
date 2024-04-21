@@ -12,88 +12,263 @@
 #pragma once
 
 #include "Enums.hpp"
-namespace SocketSparrow {
+#include "Endpoint.hpp"
+#include "UDPPacket.hpp"
 
-    struct SocketData {
-        int socket;
-        int port;
-        AddressFamily family;
-        SocketType  protocol;
-        SocketState state;
-    };
+#include <vector>
+#include <memory>
+#include <sstream>
+
+namespace SocketSparrow {
 
     /**
      * @brief Abstraction for a Network Socket
      */
     class Socket {
     private:
-        SocketData mData;
+        int mNativeSocket;
+        SocketType mProtocol;
+        AddressFamily mAddressFamily;
+        std::shared_ptr<Endpoint> mEndpoint;
 
-    public:
+    /// Private Constructors
 
         /**
          * @brief Construct a new Socket object
          * 
+         * @param fd file descriptor of the socket
+         * @param endpoint the endpoint to use (contains address and port)
+         * @param protocol the protocol to use (TCP/UDP)
+         * @throws SocketException if the file descriptor is invalid
          */
-        Socket();
+        Socket(int fd, std::shared_ptr<Endpoint> endpoint, SocketType protocol);
+
+    public:
+
+    /// Public Constructors and Destructors
+        /**
+         * @brief Construct a new Socket object
+         * 
+         * @param af Address Family of the Socket
+         * @param protocol Protocol of the Socket
+         * @throws SocketException if creating the Socket fails
+         */
+        Socket(AddressFamily af, SocketType protocol);
 
         /**
-         * @brief Destroy the Socket object
+         * @brief Construct a new Socket object and immediately binds it to an Endpoint
+         * @note  This will create a TCP Socket
          * 
+         * @param af Address Family of the Socket 
+         * @param endpoint the endpoint to connect to
+         * @throws SocketException if creating the Socket fails
+         */
+        Socket(AddressFamily af, std::shared_ptr<Endpoint> endpoint);
+
+        /**
+         * @brief Cleans up after the Socket is destroyed (e.g. closes the socket)
          */
         ~Socket();
 
+    /// Public Methods
         /**
-         * @brief Bind the Socket to a specific port
+         * @brief   bind the Socket to an Endpoint.
+         *          This Socket can be client or server
+         * @note    This is only used for TCP Sockets
          * 
-         * @param port Port to bind to
+         * @param endpoint the endpoint to connect to
+         * @throws SocketException if binding fails
+         * @throws SocketException if the Socket is not a TCP Socket
          */
-        void bind(int port);
+        void bind(std::shared_ptr<Endpoint> endpoint);
 
         /**
-         * @brief Listen for incoming connections
+         * @brief   connect the Socket to the Port
+         *          Useful when Listening to a Port
+         *          This Socket will most likely be the server
          * 
-         * @param backlog Maximum number of connections to queue
+         * @param port the port to listen to
+         * @throws SocketException if binding fails
+         */
+        void bindToPort(uint16_t port);
+
+        /**
+         * @brief  connect the Socket to the Endpoint
+         *         This Socket will be the client
+         * @note   This is only works for TCP Sockets
+         * 
+         * @param endpoint the endpoint to connect to
+         * @throws SocketException if the connection fails
+         * @throws SocketException if the Socket is not a TCP Socket
+         */
+        void connect(std::shared_ptr<Endpoint> endpoint);
+
+        /**
+         * @brief   listen to the Socket
+         *          This Socket will be the server
+         * @note    This is only used for TCP Sockets
+         * 
+         * @param backlog the maximum number of connections
+         * @throws SocketException if the Socket is not a TCP Socket
          */
         void listen(int backlog);
 
         /**
-         * @brief Accept an incoming connection
+         * @brief   accept a connection
+         *          this Socket has to be the server
+         * @note    This is only used for TCP Sockets
          * 
-         * @return int File Descriptor of the new connection
+         * @return std::shared_ptr<Endpoint> the Endpoint of the accepted connection
+         * @throws SocketException if accepting fails
+         * @throws SocketException if the Socket is not a TCP Socket
          */
-        int accept();
+        std::shared_ptr<Socket> accept();
 
         /**
-         * @brief Connect to a remote endpoint
+         * @brief   Configure the Socket for broadcast mode (or disable it)
+         * @note    when disabling broadcast, the Address will be set to Any(0)
          * 
-         * @param address Address of the remote endpoint
-         * @param port Port of the remote endpoint
+         * @param enable true to enable broadcast, false to disable
+         * @throws SocketException if setting the Configuration fails
          */
-        void connect(const char* address, int port);
+        void setBroadcast(bool enable = true);
 
         /**
-         * @brief Send data to the connected endpoint
+         * @brief   Configure the Socket for Reuse (or disable it)
+         * @note    This is useful when the Socket is closed and reopened
+         * @note    UDP benefits from this
          * 
-         * @param data Data to send
-         * @param size Size of the data
+         * @param enable true to enable reuse, false to disable
+         * @throws SocketException if setting the Configuration fails
          */
-        void send(const char* data, int size);
+        void enablePortReuse(bool enable = true);
 
         /**
-         * @brief Receive data from the connected endpoint
+         * @brief   Sends data to the internal Socket
+         *          This is used for TCP or UDP Sockets
+         * @note    for TCP this socket should be returned from accept()
          * 
-         * @param buffer Buffer to store the received data
-         * @param size Size of the buffer
-         * @return int Number of bytes received
+         * @param data the data to send
+         * @return ssize_t the number of bytes sent
+         * @throws SendError if sending fails
+         * @see SocketSparrow::Socket::accept()
          */
-        int receive(char* buffer, int size);
+        ssize_t send(std::vector<char> data) const;
 
         /**
-         * @brief Close the Socket
+         * @brief   Receives data from the internal Socket
+         *          This is used for TCP or UDP Sockets
+         * @note    for TCP this socket should be returned from accept()
          * 
+         * @param data the buffer to store the data. The buffer will be resized to fit the data
+         * @return ssize_t the number of bytes received
+         * @throws RecvError if receiving fails
+         * @see SocketSparrow::Socket::accept()
          */
-        void close();
+        ssize_t recv(std::vector<char>& buffer) const;
+
+        /**
+         * @brief   Receives data from the internal Socket
+         *          This is used for TCP or UDP Sockets
+         * @note    for TCP this socket should be returned from accept()
+         * 
+         * @param buffer the buffer to store the data
+         * @param size the maximum size of the data
+         * @return ssize_t the number of bytes received
+         * @throws RecvError if receiving fails
+         * @see SocketSparrow::Socket::accept()
+         */
+        ssize_t recv(std::vector<char>& buffer, size_t size) const;
+
+        /**
+         * @brief   Sends a UDP Packet to the internal Socket
+         * @note    this only works with UDP Sockets
+         * 
+         * @param data the data to send
+         * @param endpoint the endpoint to send the data to
+         * @return ssize_t the number of bytes sent
+         * @throws SendError if sending fails
+         * @see SocketSparrow::Socket::send()
+         */
+        ssize_t sendTo(std::vector<char> data, std::shared_ptr<Endpoint> endpoint);
+
+        /**
+         * @brief   Sends a UDP Packet to the internal Socket
+         * @note    this only works with UDP Sockets
+         * 
+         * @param packet the packet to send
+         * @return ssize_t the number of bytes sent
+         * @throws SendError if sending fails
+         * @see SocketSparrow::Socket::send()
+         */
+        ssize_t sendTo(UDPPacket packet);
+
+        /**
+         * @brief   Receives a UDP Packet from the internal Socket
+         * @note    this only works with UDP Sockets
+         * 
+         * @return UDPPacket the received packet
+         * @throws RecvError if receiving fails
+         * @see SocketSparrow::Socket::recv()
+         */
+        UDPPacket recvFrom() const;
+
+    /// Operators
+
+        /**
+         * @brief   Sends data to the internal Socket
+         *          This is used for TCP or UDP Sockets
+         * 
+         * @param data the data to send
+         * @return ssize_t the number of bytes sent
+         * @throws SendError if sending fails
+         * @see SocketSparrow::Socket::send()
+         */
+        ssize_t operator<<(const std::vector<char>& data) const;
+
+        /**
+         * @brief   Sends data to the internal Socket
+         *          This is used for TCP or UDP Sockets
+         * 
+         * @param data the data to send
+         * @return ssize_t the number of bytes sent
+         * @throws SendError if sending fails
+         * @see SocketSparrow::Socket::send()
+         */
+        ssize_t operator<<(const std::string& data) const;
+
+        /**
+         * @brief   Receives data from the internal Socket
+         *          This is used for TCP or UDP Sockets
+         * 
+         * @param buffer the buffer to store the data
+         * @return ssize_t the number of bytes received
+         * @throws RecvError if receiving fails
+         * @see SocketSparrow::Socket::recv()
+         */
+        ssize_t operator>>(std::vector<char>& buffer) const;
+
+        /**
+         * @brief   Receives data from the internal Socket
+         *          This is used for TCP or UDP Sockets
+         * 
+         * @param buffer the buffer to store the data
+         * @return ssize_t the number of bytes received
+         * @throws RecvError if receiving fails
+         * @see SocketSparrow::Socket::recv()
+         */
+        ssize_t operator>>(std::string& buffer) const;
+
+        /**
+         * @brief   Receives data from the internal Socket
+         *          This is used for TCP or UDP Sockets
+         * 
+         * @param stream the stream to store the data
+         * @return ssize_t the number of bytes received
+         * @throws RecvError if receiving fails
+         * @see SocketSparrow::Socket::recv()
+         */
+        ssize_t operator>>(std::stringstream& stream) const;
 
     };
 
