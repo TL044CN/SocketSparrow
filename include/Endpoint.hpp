@@ -46,7 +46,7 @@ public:
      * @param hostname the Hostname of the Endpoint
      * @param port the Port of the Endpoint
      */
-    Endpoint(std::string hostname = "localhost", uint16_t port = 80, AddressFamily af = AddressFamily::IPv4);
+    explicit Endpoint(std::string hostname = "localhost", uint16_t port = 80, AddressFamily af = AddressFamily::IPv4);
 
     /**
      * @brief Construct a new Endpoint object
@@ -54,7 +54,7 @@ public:
      * @param ip the IP of the Endpoint
      * @param port the Port of the Endpoint
      */
-    Endpoint(in_addr_t ip, uint16_t port = 80);
+    explicit Endpoint(in_addr_t ip, uint16_t port = 80);
 
     /**
      * @brief Construct a new Endpoint object
@@ -62,7 +62,7 @@ public:
      * @param addr address to copy
      * @param size size of address
      */
-    Endpoint(sockaddr_storage addr, socklen_t size);
+    explicit Endpoint(sockaddr_storage addr, socklen_t size);
 
     /**
      * @brief Construct a new Endpoint object
@@ -70,7 +70,7 @@ public:
      * @param af the AddressFamily of the Endpoint
      * @param port the Port of the Endpoint
      */
-    Endpoint(AddressFamily, uint16_t port = 80);
+    explicit Endpoint(AddressFamily, uint16_t port = 80);
 
     /**
      * @brief Destroy the Endpoint
