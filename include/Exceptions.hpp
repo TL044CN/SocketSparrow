@@ -12,12 +12,30 @@
 #pragma once
 #include <exception>
 
-namespace SocketSparrow::Exceptions {
+namespace SocketSparrow {
 
     /**
      * @brief Base Exception Class for SocketSparrow
      */
     class SocketSparrowException : public std::exception {
+    public:
+        virtual const char* what() const noexcept override;
+    };
+
+    /**
+     * @brief Exception for Socket Errors
+     */
+    class SocketException : public SocketSparrowException {
+    public:
+        virtual const char* what() const noexcept override;
+    };
+
+    class SendError : public SocketException {
+    public:
+        virtual const char* what() const noexcept override;
+    };
+
+    class RecvError : public SocketException {
     public:
         virtual const char* what() const noexcept override;
     };
