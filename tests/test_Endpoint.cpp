@@ -38,4 +38,14 @@ TEST_CASE("Endpoint Creation", "[Endpoint]") {
         REQUIRE_NOTHROW(delete endpoint);
     }
 
+    SECTION("Endpoint Validity") {
+        Endpoint endpoint("localhost", 8080);
+        REQUIRE(endpoint.getAddressFamily() == AddressFamily::IPv4);
+        REQUIRE(endpoint.getPort() == 8080);
+
+        sockaddr_in* addr = (sockaddr_in*)endpoint.c_addr();
+        REQUIRE(addr->sin_addr.s_addr == htonl(INADDR_LOOPBACK));
+        REQUIRE(addr->sin_port == htons(8080));
+    }
+
 }

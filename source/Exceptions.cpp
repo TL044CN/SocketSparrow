@@ -1,21 +1,28 @@
 #include "Exceptions.hpp"
+#include <cstring>
 
 namespace SocketSparrow {
 
-    const char* SocketSparrowException::what() const noexcept {
-        return "SocketSparrow Exception";
-    }
+const char* SocketSparrowException::what() const noexcept {
+    return "SocketSparrow Exception";
+}
 
-    const char* SocketException::what() const noexcept {
-        return "Socket Exception";
-    }
+SocketException::SocketException(): mMessage("Socket Exception") {}
+SocketException::SocketException(const std::string& message): mMessage(message) {}
+SocketException::SocketException(int error, const std::string& message) {
+    mMessage = message + ": [" + std::to_string(error) + "] " + strerror(error);
+}
 
-    const char* SendError::what() const noexcept {
-        return "Send Error";
-    }
+const char* SocketException::what() const noexcept {
+    return mMessage.c_str();
+}
 
-    const char* RecvError::what() const noexcept {
-        return "Receive Error";
-    }
+SendError::SendError(): SocketException("Send Error") {}
+SendError::SendError(const std::string& message): SocketException(message) {}
+SendError::SendError(int error, const std::string& message): SocketException(error, message) {}
+
+RecvError::RecvError(): SocketException("Receive Error") {}
+RecvError::RecvError(const std::string& message): SocketException(message) {}
+RecvError::RecvError(int error, const std::string& message): SocketException(error, message) {}
 
 } // namespace SocketSparrow::Exceptions

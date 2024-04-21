@@ -46,7 +46,7 @@ public:
      * @param hostname the Hostname of the Endpoint
      * @param port the Port of the Endpoint
      */
-    Endpoint(std::string hostname = "localhost", uint16_t port = 80);
+    Endpoint(std::string hostname = "localhost", uint16_t port = 80, AddressFamily af = AddressFamily::IPv4);
 
     /**
      * @brief Construct a new Endpoint object
