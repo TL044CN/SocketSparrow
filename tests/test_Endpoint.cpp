@@ -5,7 +5,10 @@ using namespace SocketSparrow;
 
 TEST_CASE("Endpoint Creation", "[Endpoint]") {
     SECTION("Endpoint Creation with sockaddr and size") {
-        sockaddr_storage addr;
+        sockaddr_in addr = {};
+        addr.sin_family = AF_INET;
+        addr.sin_port = htons(8080);
+        inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
         socklen_t size = sizeof(addr);
         REQUIRE_NOTHROW(Endpoint((sockaddr*)&addr, size));
     }
