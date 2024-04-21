@@ -25,7 +25,8 @@ Socket::Socket(int fd, std::shared_ptr<Endpoint> endpoint, SocketType protocol)
 }
 
 Socket::Socket(AddressFamily af, SocketType protocol)
-    : mAddressFamily(af), mProtocol(protocol) {
+    : mProtocol(protocol), 
+    mAddressFamily(af) {
     mNativeSocket = socket(
         getNativeAddressFamily(mAddressFamily),
         getNativeSocketType(mProtocol),
@@ -39,8 +40,8 @@ Socket::Socket(AddressFamily af, SocketType protocol)
 }
 
 Socket::Socket(AddressFamily af, std::shared_ptr<Endpoint> endpoint)
-    : mAddressFamily(af),
-    mProtocol(SocketType::TCP) {
+    : mProtocol(SocketType::TCP), 
+    mAddressFamily(af) {
     mNativeSocket = socket(
         getNativeAddressFamily(mAddressFamily),
         getNativeSocketType(mProtocol),
