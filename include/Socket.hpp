@@ -132,7 +132,7 @@ namespace SocketSparrow {
          * @param enable true to enable broadcast, false to disable
          * @throws SocketException if setting the Configuration fails
          */
-        void setBroadcast(bool enable = true);
+        void enableBroadcast(bool enable = true);
 
         /**
          * @brief   Configure the Socket for Reuse (or disable it)
@@ -143,6 +143,15 @@ namespace SocketSparrow {
          * @throws SocketException if setting the Configuration fails
          */
         void enablePortReuse(bool enable = true);
+
+        /**
+         * @brief   Configure the Socket for Reuse (or disable it)
+         * @note    This is useful when the Socket is closed and reopened
+         * 
+         * @param enable true to enable reuse, false to disable
+         * @throws SocketException if setting the Configuration fails
+         */
+        void enableAddressReuse(bool enable = true);
 
         /**
          * @brief   Sends data to the internal Socket

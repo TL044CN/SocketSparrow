@@ -19,7 +19,7 @@ Socket::Socket(int fd, std::shared_ptr<Endpoint> endpoint, SocketType protocol)
     mAddressFamily(endpoint->getAddressFamily()),
     mEndpoint(endpoint) {
     if ( mNativeSocket == -1 ) {
-        throw SocketException(errno, "Failed to create Socket");
+        throw SocketException("Failed to create Socket");
     }
     mState = SocketState::Open;
 }
@@ -138,17 +138,24 @@ std::shared_ptr<Socket> Socket::accept() {
     return std::shared_ptr<Socket>(Connection);
 }
 
-void Socket::setBroadcast(bool enable) {
+void Socket::enableBroadcast(bool enable) {
     int opt = enable ? 1 : 0;
     if ( setsockopt(mNativeSocket, SOL_SOCKET, SO_BROADCAST, &opt, sizeof(opt)) == -1 ) {
-        throw SocketException("Failed to set broadcast mode");
+        throw SocketException(errno,"Failed to set socket option");
     }
 }
 
 void Socket::enablePortReuse(bool enable) {
     int opt = enable ? 1 : 0;
     if ( setsockopt(mNativeSocket, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt)) == -1 ) {
-        throw SocketException("Failed to set port reuse mode");
+        throw SocketException(errno,"Failed to set socket option");
+    }
+}
+
+void Socket::enableAddressReuse(bool enable) {
+    int opt = enable ? 1 : 0;
+    if ( setsockopt(mNativeSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1 ) {
+        throw SocketException(errno,"Failed to set socket option");
     }
 }
 
