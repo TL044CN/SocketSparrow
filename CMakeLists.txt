@@ -69,7 +69,6 @@ add_library(${PROJECT_NAME}
     source/Endpoint.cpp
     source/Exceptions.cpp
     source/Socket.cpp
-    source/UDPPacket.cpp
     source/Util.cpp
 )
 
