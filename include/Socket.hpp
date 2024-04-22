@@ -15,6 +15,7 @@
 #include "Endpoint.hpp"
 #include "UDPPacket.hpp"
 
+#include <coroutine>
 #include <vector>
 #include <memory>
 #include <sstream>
@@ -50,6 +51,7 @@ namespace SocketSparrow {
             operator bool() const { return mValue; }
         };
 
+    private:
         int mNativeSocket;
         SocketType mProtocol;
         AddressFamily mAddressFamily;
@@ -99,7 +101,6 @@ namespace SocketSparrow {
         /**
          * @brief   bind the Socket to an Endpoint.
          *          This Socket can be client or server
-         * @note    This is only used for TCP Sockets
          * 
          * @param endpoint the endpoint to connect to
          * @throws SocketException if binding fails
@@ -258,7 +259,19 @@ namespace SocketSparrow {
          * @throws SendError if sending fails
          * @see SocketSparrow::Socket::send()
          */
-        ssize_t sendTo(std::vector<char> data, std::shared_ptr<Endpoint> endpoint);
+        ssize_t send_to(std::vector<char> data, std::shared_ptr<Endpoint> endpoint);
+
+        /**
+         * @brief   Sends a UDP Packet to the internal Socket
+         * @note    this only works with UDP Sockets
+         * 
+         * @param data the data to send
+         * @param endpoint the endpoint to send the data to
+         * @return ssize_t the number of bytes sent
+         * @throws SendError if sending fails
+         * @see SocketSparrow::Socket::send()
+         */
+        ssize_t send_to(const std::string& data, std::shared_ptr<Endpoint> endpoint);
 
         /**
          * @brief   Sends a UDP Packet to the internal Socket
@@ -269,7 +282,7 @@ namespace SocketSparrow {
          * @throws SendError if sending fails
          * @see SocketSparrow::Socket::send()
          */
-        ssize_t sendTo(UDPPacket packet);
+        ssize_t send_to(UDPPacket packet);
 
         /**
          * @brief   Receives a UDP Packet from the internal Socket
@@ -279,7 +292,7 @@ namespace SocketSparrow {
          * @throws RecvError if receiving fails
          * @see SocketSparrow::Socket::recv()
          */
-        UDPPacket recvFrom() const;
+        UDPPacket recv_from() const;
 
     /// Operators
 

@@ -130,11 +130,7 @@ TEST_CASE("Socket Bind", "[Socket]") {
 
         auto endpoint2 = std::make_shared<Endpoint>("localhost", 7745);
         Socket socket2(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::UDP);
-        CHECK_THROWS_MATCHES(
-            socket2.bind(endpoint2),
-            SocketException,
-            Catch::Matchers::Message("Cannot bind a UDP socket to an endpoint")
-        );
+        REQUIRE_NOTHROW(socket2.bind(endpoint2));
     }
 
     SECTION("Bind to Port") {
@@ -355,4 +351,49 @@ TEST_CASE("Socket Send and Recv", "[Socket]") {
         serverFuture.wait();
         clientFuture.wait();
     }
+
+    SECTION("send_to and revc_from", "[Socket]") {
+        auto endpoint2 = std::make_shared<Endpoint>("localhost", 7750);
+        Socket server(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::UDP);
+        Socket client(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::UDP);
+
+        server.enableAddressReuse(true);
+        server.enablePortReuse(true);
+        client.enableAddressReuse(true);
+        client.enablePortReuse(true);
+
+        REQUIRE_NOTHROW(server.bind(endpoint2));
+
+        std::atomic_flag flag = ATOMIC_FLAG_INIT;
+
+        auto serverFuture = std::async(std::launch::async, [&]() {
+            while (flag.test_and_set(std::memory_order_acquire)) {
+                std::this_thread::yield();
+            }
+
+            UDPPacket packet;
+            REQUIRE_NOTHROW(packet = server.recv_from());
+
+            std::string message(packet.data.begin(), packet.data.end());
+            REQUIRE( message == "Hello World!");
+            REQUIRE_NOTHROW(packet = server.recv_from());
+
+        });
+
+        auto clientFuture = std::async(std::launch::async, [&]() {
+
+            REQUIRE_NOTHROW(client.send_to("Hello World!", endpoint2));
+            UDPPacket packet(
+                std::vector<char>{ 'H', 'E', 'L', 'L', 'O' },
+                endpoint2
+            );
+
+            client.send_to(packet);
+            flag.clear(std::memory_order_release);
+        });
+
+        serverFuture.wait();
+        clientFuture.wait();
+    }
+
 }

@@ -2,16 +2,18 @@
 #include "Util.hpp"
 #include "Exceptions.hpp"
 
+#include <thread>
+#include <cstring>
+
 #include <sys/socket.h>
 #include <sys/unistd.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <fcntl.h>
-#include <cstring>
-
 #include <error.h>
 
 namespace SocketSparrow {
+
 using namespace Util;
 
 Socket::Socket(int fd, std::shared_ptr<Endpoint> endpoint, SocketType protocol)
@@ -65,10 +67,6 @@ Socket::~Socket() {
 
 
 void Socket::bind(std::shared_ptr<Endpoint> endpoint) {
-    if ( mProtocol != SocketType::TCP ) {
-        throw SocketException("Cannot bind a UDP socket to an endpoint");
-    }
-
     mEndpoint = endpoint;
     if ( ::bind(mNativeSocket, mEndpoint->c_addr(), mEndpoint->c_size()) == -1 ) {
         throw SocketException(errno, "Failed to bind to endpoint");
@@ -227,7 +225,10 @@ ssize_t Socket::recv(std::string& buffer) const {
     return received;
 }
 
-ssize_t Socket::sendTo(std::vector<char> data, std::shared_ptr<Endpoint> endpoint) {
+ssize_t Socket::send_to(std::vector<char> data, std::shared_ptr<Endpoint> endpoint) {
+    if(mProtocol != SocketType::UDP) {
+        throw SocketException("Cannot send_to from a TCP socket");
+    }
     ssize_t sent = ::sendto(mNativeSocket, data.data(), data.size(), 0, endpoint->c_addr(), endpoint->c_size());
     if ( sent == -1 ) {
         throw SendError(errno, "Failed to send");
@@ -235,14 +236,33 @@ ssize_t Socket::sendTo(std::vector<char> data, std::shared_ptr<Endpoint> endpoin
     return sent;
 }
 
-ssize_t Socket::sendTo(UDPPacket packet) {
-    //todo: implement
-    return 0;
+ssize_t Socket::send_to(const std::string& data, std::shared_ptr<Endpoint> endpoint) {
+    return send_to(std::vector<char>(data.begin(), data.end()), endpoint);
 }
 
-UDPPacket Socket::recvFrom() const {
-    // todo: implement
-    return {};
+ssize_t Socket::send_to(UDPPacket packet) {
+    if(mProtocol != SocketType::UDP) {
+        throw SocketException("Cannot send_to from a TCP socket");
+    }
+
+    return send_to(packet.data, packet.endpoint);
+}
+
+UDPPacket Socket::recv_from() const {
+    if(mProtocol != SocketType::UDP) {
+        throw SocketException("Cannot recv_from from a TCP socket");
+    }
+
+    UDPPacket packet;
+    sockaddr addr;
+    socklen_t size;
+    ssize_t received = ::recvfrom(mNativeSocket, packet.data.data(), packet.data.size(), 0, &addr, &size);
+    if ( received == -1 ) {
+        throw RecvError(errno, "Failed to receive");
+    }
+    
+    packet.data.resize(received);
+    return packet;
 }
 
 
