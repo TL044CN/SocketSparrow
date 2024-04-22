@@ -3,7 +3,7 @@ include(FetchContent)
 FetchContent_Declare(
   Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v2.x
+  GIT_TAG        v3.4.0
 )
 
 # Setup Catch2
@@ -32,7 +32,7 @@ target_link_libraries(${PROJECT_NAME}_tests
 # Include directories
 target_include_directories(${PROJECT_NAME}_tests
     PRIVATE
-        ${catch2_SOURCE_DIR}/single_include
+#        ${catch2_SOURCE_DIR}/include
         ${${PROJECT_NAME}_INCLUDE_DIR}
 )
 
@@ -68,6 +68,7 @@ if(NOT ${PROJECT_NAME}_IS_SUBMODULE)
         COMMAND ${CMAKE_MAKE_PROGRAM} test
         COMMAND ${GCOV} -r -pb tests/CMakeFiles/${PROJECT_NAME}_tests.dir/*.gcno CMakeFiles/${PROJECT_NAME}.dir/source/*.gcno
         COMMAND ${LCOV} --capture --directory . --output-file coverage.info
+        COMMAND ${LCOV} --remove coverage.info '*catch2*' '*test_*' '/usr/*' --output-file coverage.info
         COMMAND ${GENHTML} coverage.info --output-directory out
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Running GCOV and generating report"
@@ -81,6 +82,7 @@ if(NOT ${PROJECT_NAME}_IS_SUBMODULE)
         COMMAND ${CMAKE_COMMAND} -E env LLVM_PROFILE_FILE="${PROFRAW_FILE}" ${CMAKE_MAKE_PROGRAM} test
         COMMAND llvm-profdata merge -sparse ${CMAKE_BINARY_DIR}/tests/${PROJECT_NAME}-*.profraw ${DEFAULT_PROFRAW_FILE} -o ${PROFDATA_FILE}
         COMMAND ${GCOV} export -format=lcov ${CMAKE_BINARY_DIR}/tests/${PROJECT_NAME}_tests -instr-profile=${PROFDATA_FILE} > coverage.lcov
+        COMMAND ${LCOV} --remove coverage.lcov '*catch2*' '*test_*' '/usr/*' --output-file coverage.lcov
         COMMAND ${LCOV} --summary coverage.lcov
         COMMAND ${GENHTML} coverage.lcov --output-directory out
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
