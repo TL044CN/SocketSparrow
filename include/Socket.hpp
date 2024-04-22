@@ -26,6 +26,30 @@ namespace SocketSparrow {
      */
     class Socket {
     private:
+        /**
+         * @brief  Helper Class to make sure the bool is explicit
+         */
+        class ExplicitBool final {
+        private:
+            bool mValue;
+
+        public:
+            /**
+             * @brief Construct a new Explicit Bool object
+             * 
+             * @param value the value to set
+             */
+            explicit ExplicitBool(bool value) : mValue(value) {}
+
+            /**
+             * @brief   Get the value of the bool
+             * @note    This is explicit
+             * 
+             * @return bool the value of the bool
+             */
+            operator bool() const { return mValue; }
+        };
+
         int mNativeSocket;
         SocketType mProtocol;
         AddressFamily mAddressFamily;
@@ -154,6 +178,15 @@ namespace SocketSparrow {
         void enableAddressReuse(bool enable = true);
 
         /**
+         * @brief   Configure the Socket for Blocking (or non-blocking)
+         * @note    This is useful when the Socket is used in a non-blocking way
+         * 
+         * @param enable true to enable blocking, false to disable
+         * @throws SocketException if setting the Configuration fails
+         */
+        void enableNonBlocking(bool enable = true);
+
+        /**
          * @brief   Sends data to the internal Socket
          *          This is used for TCP or UDP Sockets
          * @note    for TCP this socket should be returned from accept()
@@ -166,16 +199,29 @@ namespace SocketSparrow {
         ssize_t send(std::vector<char> data) const;
 
         /**
+         * @brief   Sends data to the internal Socket
+         *          This is used for TCP or UDP Sockets
+         * @note    for TCP this socket should be returned from accept()
+         * 
+         * @param data the data to send
+         * @return ssize_t the number of bytes sent
+         * @throws SendError if sending fails
+         * @see SocketSparrow::Socket::accept()
+         */
+        ssize_t send(const std::string& data) const;
+
+        /**
          * @brief   Receives data from the internal Socket
          *          This is used for TCP or UDP Sockets
          * @note    for TCP this socket should be returned from accept()
          * 
-         * @param data the buffer to store the data. The buffer will be resized to fit the data
+         * @param buffer the buffer to store the data. The buffer will be resized to fit the data
+         * @param autoresize true to automatically resize the buffer, false to use the current size
          * @return ssize_t the number of bytes received
          * @throws RecvError if receiving fails
          * @see SocketSparrow::Socket::accept()
          */
-        ssize_t recv(std::vector<char>& buffer) const;
+        ssize_t recv(std::vector<char>& buffer, ExplicitBool autoresize = ExplicitBool(true)) const;
 
         /**
          * @brief   Receives data from the internal Socket
@@ -189,6 +235,18 @@ namespace SocketSparrow {
          * @see SocketSparrow::Socket::accept()
          */
         ssize_t recv(std::vector<char>& buffer, size_t size) const;
+
+        /**
+         * @brief   Receives data from the internal Socket
+         *          This is used for TCP or UDP Sockets
+         * @note    for TCP this socket should be returned from accept()
+         * 
+         * @param buffer the buffer to store the data
+         * @return ssize_t the number of bytes received
+         * @throws RecvError if receiving fails
+         * @see SocketSparrow::Socket::accept()
+         */
+        ssize_t recv(std::string& buffer) const;
 
         /**
          * @brief   Sends a UDP Packet to the internal Socket

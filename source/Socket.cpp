@@ -6,6 +6,7 @@
 #include <sys/unistd.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <fcntl.h>
 #include <cstring>
 
 #include <error.h>
@@ -159,6 +160,23 @@ void Socket::enableAddressReuse(bool enable) {
     }
 }
 
+void Socket::enableNonBlocking(bool enable) {
+    int flags = fcntl(mNativeSocket, F_GETFL, 0);
+    if ( flags == -1 ) {
+        throw SocketException(errno,"Failed to get socket flags");
+    }
+
+    if ( enable ) {
+        flags |= O_NONBLOCK;
+    } else {
+        flags &= ~O_NONBLOCK;
+    }
+
+    if ( fcntl(mNativeSocket, F_SETFL, flags) == -1 ) {
+        throw SocketException(errno,"Failed to set socket flags");
+    }
+}
+
 ssize_t Socket::send(std::vector<char> data) const {
     ssize_t sent = ::send(mNativeSocket, data.data(), data.size(), 0);
     if ( sent == -1 ) {
@@ -167,17 +185,46 @@ ssize_t Socket::send(std::vector<char> data) const {
     return sent;
 }
 
-ssize_t Socket::recv(std::vector<char>& buffer) const {
-    ssize_t received = ::recv(mNativeSocket, buffer.data(), buffer.size(), 0);
-    if ( received == -1 ) {
-        throw RecvError(errno, "Failed to receive");
+ssize_t Socket::send(const std::string& data) const {
+    return send(std::vector<char>(data.begin(), data.end()));
+}
+
+ssize_t Socket::recv(std::vector<char>& buffer, ExplicitBool autoresize) const {
+    ssize_t totalReceived = 0;
+    if(autoresize) {
+        buffer.resize(1024);
     }
-    return received;
+    while(totalReceived < buffer.size()) {
+        ssize_t received = ::recv(mNativeSocket, buffer.data() + totalReceived, buffer.size() - totalReceived, 0);
+        if ( received == -1 ) {
+            throw RecvError(errno, "Failed to receive");
+        }
+        totalReceived += received;
+        if(autoresize && buffer.size() - totalReceived < 1024 && received == 1024) {
+            buffer.resize(buffer.size() + 1024);
+        }
+
+        if(received < 1024) {
+            break;
+        }
+    }
+    if(autoresize) {
+        buffer.resize(totalReceived);
+    }
+
+    return totalReceived;
 }
 
 ssize_t Socket::recv(std::vector<char>& buffer, size_t size) const {
     buffer.resize(size);
-    return recv(buffer);
+    return recv(buffer, ExplicitBool(false));
+}
+
+ssize_t Socket::recv(std::string& buffer) const {
+    std::vector<char> vec;
+    ssize_t received = recv(vec, ExplicitBool(true));
+    buffer = std::string(vec.begin(), vec.end());
+    return received;
 }
 
 ssize_t Socket::sendTo(std::vector<char> data, std::shared_ptr<Endpoint> endpoint) {

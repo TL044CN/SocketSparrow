@@ -11,6 +11,8 @@
 #include <future>
 #include <thread>
 #include <chrono>
+#include <atomic>
+
 #include <dlfcn.h>
 #include <errno.h>
 
@@ -19,31 +21,31 @@ typedef int(*socket_func_t)(int, int, int);
 typedef int(*listen_func_t)(int, int);
 typedef int(*accept_func_t)(int, struct sockaddr*, socklen_t*);
 typedef int(*setsockopt_func_t)(int, int, int, const void*, socklen_t);
-
+typedef int(*fnctl_func_t)(int, int, ...);
 
 socket_func_t real_socket = (socket_func_t)dlsym(RTLD_NEXT, "socket");
 socket_func_t mock_socket = [](int domain, int type, int protocol) -> int {
     errno = EPROTONOSUPPORT;
     return -1;
-};
+    };
 
 listen_func_t real_listen = (listen_func_t)dlsym(RTLD_NEXT, "listen");
 listen_func_t mock_listen = [](int sockfd, int backlog) -> int {
     errno = EOPNOTSUPP;
     return -1;
-};
+    };
 
 accept_func_t real_accept = (accept_func_t)dlsym(RTLD_NEXT, "accept");
 accept_func_t mock_accept = [](int sockfd, struct sockaddr* addr, socklen_t* addrlen) -> int {
     errno = EOPNOTSUPP;
     return -1;
-};
+    };
 
 setsockopt_func_t real_setsockopt = (setsockopt_func_t)dlsym(RTLD_NEXT, "setsockopt");
 setsockopt_func_t mock_setsockopt = [](int sockfd, int level, int optname, const void* optval, socklen_t optlen) -> int {
     errno = EOPNOTSUPP;
     return -1;
-};
+    };
 
 
 bool useMockSocket = false;
@@ -53,32 +55,33 @@ bool useMockSetsockopt = false;
 
 
 int socket(int domain, int type, int protocol) {
-    if (useMockSocket) {
+    if ( useMockSocket ) {
         return mock_socket(domain, type, protocol);
     }
     return real_socket(domain, type, protocol);
 }
 
 int listen(int sockfd, int backlog) {
-    if (useMockListen) {
+    if ( useMockListen ) {
         return mock_listen(sockfd, backlog);
     }
     return real_listen(sockfd, backlog);
 }
 
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
-    if (useMockAccept) {
+    if ( useMockAccept ) {
         return mock_accept(sockfd, addr, addrlen);
     }
     return real_accept(sockfd, addr, addrlen);
 }
 
 int setsockopt(int sockfd, int level, int optname, const void* optval, socklen_t optlen) {
-    if (useMockSetsockopt) {
+    if ( useMockSetsockopt ) {
         return mock_setsockopt(sockfd, level, optname, optval, optlen);
     }
     return real_setsockopt(sockfd, level, optname, optval, optlen);
 }
+
 // === End System Call Mocking ===
 
 using namespace SocketSparrow;
@@ -147,7 +150,7 @@ TEST_CASE("Socket Bind", "[Socket]") {
     }
 }
 
-TEST_CASE("Socket Options", "[Socket]"){
+TEST_CASE("Socket Options", "[Socket]") {
     Socket socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP);
 
     CHECK_NOTHROW(socket.enableAddressReuse(true));
@@ -156,6 +159,8 @@ TEST_CASE("Socket Options", "[Socket]"){
     CHECK_NOTHROW(socket.enablePortReuse(false));
     CHECK_NOTHROW(socket.enableBroadcast(true));
     CHECK_NOTHROW(socket.enableBroadcast(false));
+    CHECK_NOTHROW(socket.enableNonBlocking(true));
+    CHECK_NOTHROW(socket.enableNonBlocking(false));
 
     useMockSetsockopt = true;
     CHECK_THROWS_MATCHES(
@@ -200,7 +205,7 @@ TEST_CASE("Socket Connect", "[Socket]") {
     std::promise<void> serverReady;
     std::future<void> serverReadyFuture = serverReady.get_future();
     SECTION("Listen on Endpoint and accept connection") {
-        auto f = std::async(std::launch::async, [&](){
+        auto f = std::async(std::launch::async, [&]() {
             server.listen(5);
             serverReady.set_value();
             auto connection = server.accept();
@@ -214,7 +219,7 @@ TEST_CASE("Socket Connect", "[Socket]") {
 
         f.wait();
     }
-    SECTION("Check Connection Failures", "[Socket]"){
+    SECTION("Check Connection Failures", "[Socket]") {
         Socket client(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::UDP);
         CHECK_THROWS_MATCHES(
             client.connect(endpoint),
@@ -236,7 +241,7 @@ TEST_CASE("Socket Listen and Accept", "[Socket]") {
     Socket socket3(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP);
     Socket socket4(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP);
     auto endpoint = std::make_shared<Endpoint>("localhost", 7748);
-    SECTION("Check Listen", "[Socket]"){
+    SECTION("Check Listen", "[Socket]") {
         CHECK_THROWS_MATCHES(
             socket2.listen(5),
             SocketException,
@@ -255,7 +260,7 @@ TEST_CASE("Socket Listen and Accept", "[Socket]") {
         REQUIRE_NOTHROW(socket4.listen(5));
     }
 
-    SECTION("Check Accept", "[Socket]"){
+    SECTION("Check Accept", "[Socket]") {
         CHECK_THROWS_MATCHES(
             socket2.accept(),
             SocketException,
@@ -282,7 +287,7 @@ TEST_CASE("Socket Listen and Accept", "[Socket]") {
         );
     }
 
-    SECTION("Check Accept Failures", "[Socket]"){
+    SECTION("Check Accept Failures", "[Socket]") {
         socket3.bind(endpoint);
         socket3.listen(5);
         useMockAccept = true;
@@ -292,5 +297,62 @@ TEST_CASE("Socket Listen and Accept", "[Socket]") {
             Catch::Matchers::Message("Failed to accept: [95] Operation not supported")
         );
         useMockAccept = false;
+    }
+}
+TEST_CASE("Socket Send and Recv", "[Socket]") {
+    SECTION("Check Send and Recv", "[Socket]") {
+        auto endpoint2 = std::make_shared<Endpoint>("localhost", 7749);
+        Socket server(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP);
+        server.enableAddressReuse(true);
+        REQUIRE_NOTHROW(server.bind(endpoint2));
+        REQUIRE_NOTHROW(server.listen(5));
+
+        std::atomic_flag flag = ATOMIC_FLAG_INIT;
+
+        auto serverFuture = std::async(std::launch::async, [&]() {
+            auto connection = server.accept();
+            REQUIRE(connection);
+            flag.test_and_set();
+            flag.notify_all();
+
+            connection->enableNonBlocking(false);
+
+            std::string recvMessage;
+            REQUIRE_NOTHROW(connection->recv(recvMessage));
+            CHECK(recvMessage == "Hello World!");
+
+            std::vector<char> sendMessageVec(recvMessage.begin(), recvMessage.end());
+            REQUIRE_NOTHROW(connection->send(std::string(sendMessageVec.begin(), sendMessageVec.end())));
+
+            std::vector<char> recvMessageVec;
+            REQUIRE_NOTHROW(connection->recv(recvMessageVec, 5));
+            bool equal = std::string(recvMessageVec.begin(), recvMessageVec.end()) == "Hello";
+            CHECK(equal);
+
+            std::string largeMessage(1028, 'A');
+
+            REQUIRE_NOTHROW((*connection) << largeMessage);
+            std::stringstream ss;
+            REQUIRE_NOTHROW((*connection) >> ss);
+            REQUIRE_NOTHROW((*connection) << ss.str());
+        });
+
+        auto clientFuture = std::async(std::launch::async, [&]() {
+
+            Socket client(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP);
+            REQUIRE_NOTHROW(client.connect(endpoint2));
+            flag.wait(true);
+            REQUIRE_NOTHROW(client.send("Hello World!"));
+            std::vector<char> recvMessageVec;
+            REQUIRE_NOTHROW(client.recv(recvMessageVec));
+            REQUIRE_NOTHROW(client.send(recvMessageVec));
+            REQUIRE_NOTHROW(client >> recvMessageVec);
+            REQUIRE_NOTHROW(client << recvMessageVec);
+            std::string recvMessage;
+            REQUIRE_NOTHROW(client >> recvMessage);
+        });
+
+        serverFuture.wait();
+        clientFuture.wait();
     }
 }
