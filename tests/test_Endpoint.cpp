@@ -1,5 +1,9 @@
 #include "catch2/catch_all.hpp"
+
+#define private public
 #include "Endpoint.hpp"
+#undef private
+
 #include "Exceptions.hpp"
 #include "Util.hpp"
 #include <cstring>
@@ -130,6 +134,10 @@ TEST_CASE("Endpoint Creation", "[Endpoint]") {
         size = sizeof(addr6);
         Endpoint endpoint6((sockaddr*)&addr6, size);
         CHECK(endpoint6.c_size() == size);
+
+        endpoint6.mAddressFamily = AddressFamily::Unknown;
+        CHECK_THROWS_AS(endpoint6.c_size(), InvalidAddressFamilyException);
+        
     }
 
     SECTION("Endpoint Destructor") {

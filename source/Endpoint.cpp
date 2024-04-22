@@ -45,8 +45,7 @@ Endpoint::Endpoint(const std::string& hostname, uint16_t port, AddressFamily af)
         struct sockaddr_in* ipv4 = reinterpret_cast<struct sockaddr_in*>(res->ai_addr);
         mSockaddr.ipv4.sin_addr.s_addr = ipv4->sin_addr.s_addr;
         freeaddrinfo(res);
-    }
-    break;
+    } break;
     case AddressFamily::IPv6:
     {
         mSockaddr.ipv6.sin6_family = hints.ai_family;
@@ -59,8 +58,7 @@ Endpoint::Endpoint(const std::string& hostname, uint16_t port, AddressFamily af)
         struct sockaddr_in6* ipv6 = reinterpret_cast<struct sockaddr_in6*>(res6->ai_addr);
         mSockaddr.ipv6.sin6_addr = ipv6->sin6_addr;
         freeaddrinfo(res6);
-    }
-    break;
+    } break;
     default:
         throw InvalidAddressFamilyException(af);
     }
