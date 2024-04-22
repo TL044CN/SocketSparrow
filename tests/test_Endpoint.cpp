@@ -1,4 +1,4 @@
-#include "catch2/catch.hpp"
+#include "catch2/catch_all.hpp"
 #include "Endpoint.hpp"
 #include "Exceptions.hpp"
 #include "Util.hpp"
@@ -47,15 +47,15 @@ TEST_CASE("Endpoint Creation", "[Endpoint]") {
     }
 
     SECTION("Endpoint Creation with invalid hostname, port and AddressFamily") {
-        REQUIRE_THROWS_AS(Endpoint("invalid_hostname", 8080), InvalidAddressException);
-        REQUIRE_THROWS_AS(Endpoint("invalid_hostname", 8080, AddressFamily::IPv4), InvalidAddressException);
-        REQUIRE_THROWS_AS(Endpoint("invalid_hostname", 8080, AddressFamily::IPv6), InvalidAddressException);
-        REQUIRE_THROWS_AS(Endpoint("localhost", 8080, AddressFamily::Unknown), InvalidAddressFamilyException);
+        CHECK_THROWS_AS(Endpoint("invalid_hostname", 8080), InvalidAddressException);
+        CHECK_THROWS_AS(Endpoint("invalid_hostname", 8080, AddressFamily::IPv4), InvalidAddressException);
+        CHECK_THROWS_AS(Endpoint("invalid_hostname", 8080, AddressFamily::IPv6), InvalidAddressException);
+        CHECK_THROWS_AS(Endpoint("localhost", 8080, AddressFamily::Unknown), InvalidAddressFamilyException);
         // all int values for port are valid
     }
 
     SECTION("Endpoint Creation with invalid IP address") {
-        REQUIRE_THROWS_AS(Endpoint(inet_addr("invalid_ip"), 8080), InvalidAddressException);
+        CHECK_THROWS_AS(Endpoint(inet_addr("invalid_ip"), 8080), InvalidAddressException);
     }
 
     SECTION("Endpoint Creation with invalid AddressFamily") {
@@ -65,7 +65,7 @@ TEST_CASE("Endpoint Creation", "[Endpoint]") {
     SECTION("Endpoint Creation with invalid sockaddr_storage") {
         sockaddr_storage addr = {};
         socklen_t size = sizeof(addr);
-        REQUIRE_THROWS_AS(Endpoint(addr, size), InvalidAddressException);
+        CHECK_THROWS_AS(Endpoint(addr, size), InvalidAddressException);
     }
 
     SECTION("Endpoint Creation with ip and port") {
@@ -74,7 +74,7 @@ TEST_CASE("Endpoint Creation", "[Endpoint]") {
     }
 
     SECTION("Endpoint Creation with invalid ip") {
-        REQUIRE_THROWS_AS(Endpoint(in_addr_t(0), 8080), InvalidAddressException);
+        CHECK_THROWS_AS(Endpoint(in_addr_t(0), 8080), InvalidAddressException);
     }
 
     SECTION("Endpoint Creation with AddressFamily and port") {
@@ -83,17 +83,17 @@ TEST_CASE("Endpoint Creation", "[Endpoint]") {
     }
 
     SECTION("Endpoint Creation with invalid AddressFamily") {
-        REQUIRE_THROWS_AS(Endpoint(AddressFamily::Unknown, 8080), InvalidAddressFamilyException);
+        CHECK_THROWS_AS(Endpoint(AddressFamily::Unknown, 8080), InvalidAddressFamilyException);
     }
 
     SECTION("Get AddressFamily") {
         Endpoint endpoint("localhost", 8080);
-        REQUIRE(endpoint.getAddressFamily() == AddressFamily::IPv4);
+        CHECK(endpoint.getAddressFamily() == AddressFamily::IPv4);
     }
 
     SECTION("Get Port") {
         Endpoint endpoint("localhost", 8080);
-        REQUIRE(endpoint.getPort() == 8080);
+        CHECK(endpoint.getPort() == 8080);
     }
 
     SECTION("Get sockaddr") {
@@ -103,7 +103,7 @@ TEST_CASE("Endpoint Creation", "[Endpoint]") {
         inet_pton(AF_INET, "127.0.0.1", &(addr.sin_addr));
         socklen_t size = sizeof(addr);
         Endpoint endpoint((sockaddr*)&addr, size);
-        REQUIRE(memcmp(endpoint.c_addr(), &addr, size) == 0);
+        CHECK(memcmp(endpoint.c_addr(), &addr, size) == 0);
 
         sockaddr_in6 addr6 = {};
         addr6.sin6_family = AF_INET6;
@@ -111,7 +111,7 @@ TEST_CASE("Endpoint Creation", "[Endpoint]") {
         inet_pton(AF_INET6, "::1", &(addr6.sin6_addr));
         size = sizeof(addr6);
         Endpoint endpoint6((sockaddr*)&addr6, size);
-        REQUIRE(memcmp(endpoint6.c_addr(), &addr6, size) == 0);
+        CHECK(memcmp(endpoint6.c_addr(), &addr6, size) == 0);
     }
 
     SECTION("Get size of sockaddr") {
@@ -121,7 +121,7 @@ TEST_CASE("Endpoint Creation", "[Endpoint]") {
         inet_pton(AF_INET, "127.0.0.1", &(addr.sin_addr));
         socklen_t size = sizeof(addr);
         Endpoint endpoint((sockaddr*)&addr, size);
-        REQUIRE(endpoint.c_size() == size);
+        CHECK(endpoint.c_size() == size);
 
         sockaddr_in6 addr6 = {};
         addr6.sin6_family = AF_INET6;
@@ -129,7 +129,7 @@ TEST_CASE("Endpoint Creation", "[Endpoint]") {
         inet_pton(AF_INET6, "::1", &(addr6.sin6_addr));
         size = sizeof(addr6);
         Endpoint endpoint6((sockaddr*)&addr6, size);
-        REQUIRE(endpoint6.c_size() == size);
+        CHECK(endpoint6.c_size() == size);
     }
 
     SECTION("Endpoint Destructor") {
@@ -139,12 +139,12 @@ TEST_CASE("Endpoint Creation", "[Endpoint]") {
 
     SECTION("Endpoint Validity") {
         Endpoint endpoint("localhost", 8080);
-        REQUIRE(endpoint.getAddressFamily() == AddressFamily::IPv4);
-        REQUIRE(endpoint.getPort() == 8080);
+        CHECK(endpoint.getAddressFamily() == AddressFamily::IPv4);
+        CHECK(endpoint.getPort() == 8080);
 
         sockaddr_in* addr = (sockaddr_in*)endpoint.c_addr();
-        REQUIRE(addr->sin_addr.s_addr == htonl(INADDR_LOOPBACK));
-        REQUIRE(addr->sin_port == htons(8080));
+        CHECK(addr->sin_addr.s_addr == htonl(INADDR_LOOPBACK));
+        CHECK(addr->sin_port == htons(8080));
     }
 
 }
