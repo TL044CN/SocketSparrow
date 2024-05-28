@@ -18,6 +18,7 @@
 #include <atomic>
 
 using namespace SocketSparrow;
+using MockingBird::MockingController;
 
 TEST_CASE("Socket Creation", "[Socket]") {
     SECTION("Socket Creation with invalid file descriptor") {

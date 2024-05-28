@@ -11,14 +11,14 @@
 
 #pragma once
 
-#include <cstdint>
-#include <dlfcn.h>
-#include <cerrno>
-
 #include <functional>
-#include <map>
 #include <string>
+#include <dlfcn.h>
 #include <stdexcept>
+#include <cerrno>
+#include <map>
+
+namespace MockingBird {
 
  /**
   * @brief MockingController is a singleton class that controls the mocking of
@@ -46,9 +46,9 @@ public:
          * @param mockFunc The mock function
          */
         MockFunction(const std::string& name, Ret(*realFunc)(Args... args), Ret(*mockFunc)(Args...))
-        : mName(name), mMockFunc(mockFunc) {
+            : mName(name), mMockFunc(mockFunc) {
             mRealFunc = reinterpret_cast<Ret(*)(Args...)>(dlsym(RTLD_NEXT, name.c_str()));
-            if(!mRealFunc) throw std::runtime_error("Failed to load real function");
+            if ( !mRealFunc ) throw std::runtime_error("Failed to load real function");
         }
 
         /**
@@ -97,6 +97,7 @@ private:
      *        initial value when it goes out of scope
      */
     class MockGuard {
+    private:
         bool mInitialValue;
         std::string mType;
     public:
@@ -105,19 +106,13 @@ private:
          * @param type The type of the system call to mock
          * @param state The state of the mocking
          */
-        MockGuard(const std::string& type, bool state = true)
-            : mType(type), mInitialValue(MockingController::getMockState(type)) {
-            MockingController::getMockState(type) = state;
-        }
+        MockGuard(const std::string& type, bool state = true);
 
         /**
          * @brief ~MockGuard is the destructor of the MockGuard class
          */
-        ~MockGuard() {
-            MockingController::getMockState(mType) = mInitialValue;
-        }
+        ~MockGuard();
     };
-
 
     std::map<std::string, bool> mMockingState;
 
@@ -132,11 +127,7 @@ public:
      *        instance of the MockingController
      * @return MockingController& The singleton instance of the MockingController
      */
-    static auto getInstance()
-        -> MockingController& {
-        static MockingController instance;
-        return instance;
-    };
+    static auto getInstance() -> MockingController&;
 
     /**
      * @brief getMockState is a helper function that returns the mocking state
@@ -144,12 +135,7 @@ public:
      * @param name The name of the system call
      * @return bool The mocking state of the system call
      */
-    static auto getMockState(const std::string& name)
-        -> bool& {
-        if ( getInstance().mMockingState.find(name) == getInstance().mMockingState.end() )
-            getInstance().mMockingState[name] = false;
-        return getInstance().mMockingState[name];
-    }
+    static auto getMockState(const std::string& name) -> bool&;
 
     /**
      * @brief createMockGuard is a helper function that creates a MockGuard
@@ -159,10 +145,7 @@ public:
      * @param state The state of the mocking
      * @return MockGuard The MockGuard object
      */
-    static auto createMockGuard(const std::string& type, bool state = true)
-        -> MockGuard {
-        return MockGuard(type, state);
-    }
+    static auto createMockGuard(const std::string& type, bool state = true) -> MockGuard;
 
     /**
      * @brief call is a helper function that calls the real or mock function
@@ -183,3 +166,5 @@ public:
         return realFunc()(args...);
     }
 };
+
+} // namespace MockingBird

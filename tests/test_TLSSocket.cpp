@@ -8,11 +8,11 @@
 #undef protected
 #undef private
 
-#include "SocketMocking.hpp"
 #include "Exceptions.hpp"
-
+#include "SocketMocking.hpp"
 
 using namespace SocketSparrow;
+using MockingBird::MockingController;
 
 SCENARIO("TLSSocket::TLSSocket(AddressFamily, SocketType)") {
     GIVEN("A valid AddressFamily and SocketType") {

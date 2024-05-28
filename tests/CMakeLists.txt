@@ -15,13 +15,14 @@ endif()
 
 # Add tests
 add_executable(${PROJECT_NAME}_tests
-    test_main.cpp
-    test_Utils.cpp
-    test_Endpoint.cpp
-    test_Socket.cpp
-    test_TLSSocket.cpp
-    test_Exceptions.cpp
-    SocketMocking.cpp
+  Mocking.cpp
+  SocketMocking.cpp
+  test_main.cpp
+  test_Utils.cpp
+  test_Endpoint.cpp
+  test_Socket.cpp
+  test_TLSSocket.cpp
+  test_Exceptions.cpp
 )
 
 # Link required libraries

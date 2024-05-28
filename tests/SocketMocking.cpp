@@ -13,7 +13,7 @@
 #include <arpa/inet.h>
 
 template<typename... Args>
-using MF = MockingController::MockFunction<Args...>;
+using MF = MockingBird::MockingController::MockFunction<Args...>;
 
 int socket(int domain, int type, int protocol) {
     static MF<int, int, int, int> mock_socket("socket", ::socket);
