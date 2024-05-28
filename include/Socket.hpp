@@ -26,7 +26,7 @@ namespace SocketSparrow {
      * @brief Abstraction for a Network Socket
      */
     class Socket {
-    private:
+    protected:
         /**
          * @brief  Helper Class to make sure the bool is explicit
          */
@@ -52,13 +52,16 @@ namespace SocketSparrow {
         };
 
     private:
+    /// Private Members
+
         int mNativeSocket;
         SocketType mProtocol;
         AddressFamily mAddressFamily;
         std::shared_ptr<Endpoint> mEndpoint;
         SocketState mState = SocketState::Unknown;
 
-    /// Private Constructors
+    protected:
+    /// Protected Constructors
 
         /**
          * @brief Construct a new Socket object
@@ -97,6 +100,53 @@ namespace SocketSparrow {
          */
         ~Socket();
 
+    protected:
+    /// Protected Methods
+        /**
+         * @brief Set the State of the Socket
+         * 
+         * @param state the state to set
+         */
+        void setState(SocketState state);
+
+    public:
+
+    /// Public Getters
+        /**
+         * @brief Get the Native Socket File Descriptor
+         * 
+         * @return int the file descriptor of the socket
+         */
+        int getNativeSocket() const;
+
+        /**
+         * @brief Get the Protocol of the Socket
+         * 
+         * @return SocketType the protocol of the socket
+         */
+        SocketType getProtocol() const;
+
+        /**
+         * @brief Get the Address Family of the Socket
+         * 
+         * @return AddressFamily the address family of the socket
+         */
+        AddressFamily getAddressFamily() const;
+
+        /**
+         * @brief Get the Endpoint of the Socket
+         * 
+         * @return std::shared_ptr<Endpoint> the endpoint of the socket
+         */
+        std::shared_ptr<Endpoint> getEndpoint() const;
+
+        /**
+         * @brief Get the State of the Socket
+         * 
+         * @return SocketState the state of the socket
+         */
+        SocketState getState() const;
+
     /// Public Methods
         /**
          * @brief   bind the Socket to an Endpoint.
@@ -106,7 +156,7 @@ namespace SocketSparrow {
          * @throws SocketException if binding fails
          * @throws SocketException if the Socket is not a TCP Socket
          */
-        void bind(std::shared_ptr<Endpoint> endpoint);
+        virtual void bind(std::shared_ptr<Endpoint> endpoint);
 
         /**
          * @brief   connect the Socket to the Port
@@ -116,7 +166,7 @@ namespace SocketSparrow {
          * @param port the port to listen to
          * @throws SocketException if binding fails
          */
-        void bindToPort(uint16_t port);
+        virtual void bindToPort(uint16_t port);
 
         /**
          * @brief  connect the Socket to the Endpoint
@@ -127,7 +177,7 @@ namespace SocketSparrow {
          * @throws SocketException if the connection fails
          * @throws SocketException if the Socket is not a TCP Socket
          */
-        void connect(std::shared_ptr<Endpoint> endpoint);
+        virtual void connect(std::shared_ptr<Endpoint> endpoint);
 
         /**
          * @brief   listen to the Socket
@@ -137,18 +187,18 @@ namespace SocketSparrow {
          * @param backlog the maximum number of connections
          * @throws SocketException if the Socket is not a TCP Socket
          */
-        void listen(int backlog);
+        virtual void listen(int backlog);
 
         /**
          * @brief   accept a connection
          *          this Socket has to be the server
          * @note    This is only used for TCP Sockets
          * 
-         * @return std::shared_ptr<Endpoint> the Endpoint of the accepted connection
+         * @return std::shared_ptr<Socket> the Socket of the accepted connection
          * @throws SocketException if accepting fails
          * @throws SocketException if the Socket is not a TCP Socket
          */
-        std::shared_ptr<Socket> accept();
+        virtual std::shared_ptr<Socket> accept();
 
         /**
          * @brief   Configure the Socket for broadcast mode (or disable it)
@@ -190,14 +240,14 @@ namespace SocketSparrow {
         /**
          * @brief   Sends data to the internal Socket
          *          This is used for TCP or UDP Sockets
-         * @note    for TCP this socket should be returned from accept()
+         * @note    for TCP Servers this socket should be returned from accept()
          * 
          * @param data the data to send
          * @return ssize_t the number of bytes sent
          * @throws SendError if sending fails
          * @see SocketSparrow::Socket::accept()
          */
-        ssize_t send(std::vector<char> data) const;
+        virtual ssize_t send(const std::vector<char>& data) const;
 
         /**
          * @brief   Sends data to the internal Socket
@@ -209,7 +259,7 @@ namespace SocketSparrow {
          * @throws SendError if sending fails
          * @see SocketSparrow::Socket::accept()
          */
-        ssize_t send(const std::string& data) const;
+        virtual ssize_t send(const std::string& data) const;
 
         /**
          * @brief   Receives data from the internal Socket
@@ -222,7 +272,7 @@ namespace SocketSparrow {
          * @throws RecvError if receiving fails
          * @see SocketSparrow::Socket::accept()
          */
-        ssize_t recv(std::vector<char>& buffer, ExplicitBool autoresize = ExplicitBool(true)) const;
+        virtual ssize_t recv(std::vector<char>& buffer, ExplicitBool autoresize = ExplicitBool(true)) const;
 
         /**
          * @brief   Receives data from the internal Socket
@@ -235,7 +285,7 @@ namespace SocketSparrow {
          * @throws RecvError if receiving fails
          * @see SocketSparrow::Socket::accept()
          */
-        ssize_t recv(std::vector<char>& buffer, size_t size) const;
+        virtual ssize_t recv(std::vector<char>& buffer, size_t size) const;
 
         /**
          * @brief   Receives data from the internal Socket
@@ -247,7 +297,7 @@ namespace SocketSparrow {
          * @throws RecvError if receiving fails
          * @see SocketSparrow::Socket::accept()
          */
-        ssize_t recv(std::string& buffer) const;
+        virtual ssize_t recv(std::string& buffer) const;
 
         /**
          * @brief   Sends a UDP Packet to the internal Socket
@@ -259,7 +309,7 @@ namespace SocketSparrow {
          * @throws SendError if sending fails
          * @see SocketSparrow::Socket::send()
          */
-        ssize_t send_to(std::vector<char> data, std::shared_ptr<Endpoint> endpoint);
+        virtual ssize_t send_to(std::vector<char> data, std::shared_ptr<Endpoint> endpoint);
 
         /**
          * @brief   Sends a UDP Packet to the internal Socket
@@ -271,7 +321,7 @@ namespace SocketSparrow {
          * @throws SendError if sending fails
          * @see SocketSparrow::Socket::send()
          */
-        ssize_t send_to(const std::string& data, std::shared_ptr<Endpoint> endpoint);
+        virtual ssize_t send_to(const std::string& data, std::shared_ptr<Endpoint> endpoint);
 
         /**
          * @brief   Sends a UDP Packet to the internal Socket
@@ -282,7 +332,7 @@ namespace SocketSparrow {
          * @throws SendError if sending fails
          * @see SocketSparrow::Socket::send()
          */
-        ssize_t send_to(UDPPacket packet);
+        virtual ssize_t send_to(UDPPacket packet);
 
         /**
          * @brief   Receives a UDP Packet from the internal Socket
@@ -292,7 +342,7 @@ namespace SocketSparrow {
          * @throws RecvError if receiving fails
          * @see SocketSparrow::Socket::recv()
          */
-        UDPPacket recv_from() const;
+        virtual UDPPacket recv_from() const;
 
     /// Operators
 

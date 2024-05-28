@@ -3,7 +3,9 @@
 #include "catch2/generators/catch_generators_all.hpp"
 
 #define private public
+#define protected public
 #include "Socket.hpp"
+#undef protected
 #undef private
 
 #include "Exceptions.hpp"
@@ -13,76 +15,7 @@
 #include <chrono>
 #include <atomic>
 
-#include <dlfcn.h>
-#include <errno.h>
-
-// === System Call Mocking ===
-typedef int(*socket_func_t)(int, int, int);
-typedef int(*listen_func_t)(int, int);
-typedef int(*accept_func_t)(int, struct sockaddr*, socklen_t*);
-typedef int(*setsockopt_func_t)(int, int, int, const void*, socklen_t);
-typedef int(*fnctl_func_t)(int, int, ...);
-
-socket_func_t real_socket = (socket_func_t)dlsym(RTLD_NEXT, "socket");
-socket_func_t mock_socket = [](int domain, int type, int protocol) -> int {
-    errno = EPROTONOSUPPORT;
-    return -1;
-    };
-
-listen_func_t real_listen = (listen_func_t)dlsym(RTLD_NEXT, "listen");
-listen_func_t mock_listen = [](int sockfd, int backlog) -> int {
-    errno = EOPNOTSUPP;
-    return -1;
-    };
-
-accept_func_t real_accept = (accept_func_t)dlsym(RTLD_NEXT, "accept");
-accept_func_t mock_accept = [](int sockfd, struct sockaddr* addr, socklen_t* addrlen) -> int {
-    errno = EOPNOTSUPP;
-    return -1;
-    };
-
-setsockopt_func_t real_setsockopt = (setsockopt_func_t)dlsym(RTLD_NEXT, "setsockopt");
-setsockopt_func_t mock_setsockopt = [](int sockfd, int level, int optname, const void* optval, socklen_t optlen) -> int {
-    errno = EOPNOTSUPP;
-    return -1;
-    };
-
-
-bool useMockSocket = false;
-bool useMockListen = false;
-bool useMockAccept = false;
-bool useMockSetsockopt = false;
-
-
-int socket(int domain, int type, int protocol) {
-    if ( useMockSocket ) {
-        return mock_socket(domain, type, protocol);
-    }
-    return real_socket(domain, type, protocol);
-}
-
-int listen(int sockfd, int backlog) {
-    if ( useMockListen ) {
-        return mock_listen(sockfd, backlog);
-    }
-    return real_listen(sockfd, backlog);
-}
-
-int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
-    if ( useMockAccept ) {
-        return mock_accept(sockfd, addr, addrlen);
-    }
-    return real_accept(sockfd, addr, addrlen);
-}
-
-int setsockopt(int sockfd, int level, int optname, const void* optval, socklen_t optlen) {
-    if ( useMockSetsockopt ) {
-        return mock_setsockopt(sockfd, level, optname, optval, optlen);
-    }
-    return real_setsockopt(sockfd, level, optname, optval, optlen);
-}
-
-// === End System Call Mocking ===
+#include "Mocking.hpp"
 
 using namespace SocketSparrow;
 
@@ -98,13 +31,12 @@ TEST_CASE("Socket Creation", "[Socket]") {
     SECTION("Socket Creation with AddressFamily and Protocol") {
         REQUIRE_NOTHROW(Socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP));
 
-        useMockSocket = true;
+        auto mockGuard = MockingController::createMockGuard(MockingController::MockType::Socket);
         CHECK_THROWS_MATCHES(
             Socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP),
             SocketException,
             Catch::Matchers::Message("Failed to create Socket: [93] Protocol not supported")
         );
-        useMockSocket = false;
     }
 
     SECTION("Socket Creation with AddressFamily and Endpoint") {
@@ -112,13 +44,49 @@ TEST_CASE("Socket Creation", "[Socket]") {
         REQUIRE_NOTHROW(Socket(SocketSparrow::AddressFamily::IPv4, endpoint));
 
         // deliberately make the socket call fail
-        useMockSocket = true;
+        auto mockGuard = MockingController::createMockGuard(MockingController::MockType::Socket);
         CHECK_THROWS_MATCHES(
             Socket(SocketSparrow::AddressFamily::IPv4, endpoint),
             SocketException,
             Catch::Matchers::Message("Failed to create Socket: [93] Protocol not supported")
         );
-        useMockSocket = false;
+    }
+}
+
+TEST_CASE("Socket Getters", "[Socket]") {
+    SECTION("Get File Descriptor") {
+        Socket socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP);
+        CHECK(socket.getNativeSocket() > 0);
+    }
+
+    SECTION("Get Endpoint") {
+        auto endpoint = std::make_shared<Endpoint>("localhost", 7743);
+        Socket socket(SocketSparrow::AddressFamily::IPv4, endpoint);
+        CHECK(socket.getEndpoint() == endpoint);
+    }
+
+    SECTION("Get Protocol") {
+        Socket socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP);
+        CHECK(socket.getProtocol() == SocketSparrow::SocketType::TCP);
+    }
+
+    SECTION("Get Address Family") {
+        Socket socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP);
+        CHECK(socket.getAddressFamily() == SocketSparrow::AddressFamily::IPv4);
+    }
+
+    SECTION("Get State") {
+        Socket socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP);
+        CHECK(socket.getState() == SocketState::Open);
+    }
+
+}
+
+TEST_CASE("Socket Setters", "[Socket]") {
+    SECTION("Set State") {
+        Socket socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP);
+        socket.setState(SocketState::Closed);
+        CHECK(socket.getState() == SocketState::Closed);
     }
 }
 
@@ -158,7 +126,7 @@ TEST_CASE("Socket Options", "[Socket]") {
     CHECK_NOTHROW(socket.enableNonBlocking(true));
     CHECK_NOTHROW(socket.enableNonBlocking(false));
 
-    useMockSetsockopt = true;
+    auto mockGuard = MockingController::createMockGuard(MockingController::MockType::Setsockopt);
     CHECK_THROWS_MATCHES(
         socket.enableAddressReuse(true),
         SocketException,
@@ -189,7 +157,6 @@ TEST_CASE("Socket Options", "[Socket]") {
         SocketException,
         Catch::Matchers::Message("Failed to set socket option: [95] Operation not supported")
     );
-    useMockSetsockopt = false;
 
 }
 
@@ -203,6 +170,7 @@ TEST_CASE("Socket Connect", "[Socket]") {
     SECTION("Listen on Endpoint and accept connection") {
         auto f = std::async(std::launch::async, [&]() {
             server.listen(5);
+            CHECK(server.getState() == SocketState::Listening);
             serverReady.set_value();
             auto connection = server.accept();
             REQUIRE(connection);
@@ -212,7 +180,7 @@ TEST_CASE("Socket Connect", "[Socket]") {
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
         Socket client(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP);
         REQUIRE_NOTHROW(client.connect(endpoint));
-
+        CHECK(client.getState() == SocketState::Connected);
         f.wait();
     }
     SECTION("Check Connection Failures", "[Socket]") {
@@ -245,13 +213,14 @@ TEST_CASE("Socket Listen and Accept", "[Socket]") {
         );
 
         socket4.bind(endpoint);
-        useMockListen = true;
-        CHECK_THROWS_MATCHES(
-            socket4.listen(5),
-            SocketException,
-            Catch::Matchers::Message("Failed to listen: [95] Operation not supported")
-        );
-        useMockListen = false;
+        {
+            auto mockGuard = MockingController::createMockGuard(MockingController::MockType::Listen);
+            CHECK_THROWS_MATCHES(
+                socket4.listen(5),
+                SocketException,
+                Catch::Matchers::Message("Failed to listen: [95] Operation not supported")
+            );
+        }
 
         REQUIRE_NOTHROW(socket4.listen(5));
     }
@@ -286,13 +255,12 @@ TEST_CASE("Socket Listen and Accept", "[Socket]") {
     SECTION("Check Accept Failures", "[Socket]") {
         socket3.bind(endpoint);
         socket3.listen(5);
-        useMockAccept = true;
+        auto mockGuard = MockingController::createMockGuard(MockingController::MockType::Accept);
         CHECK_THROWS_MATCHES(
             socket3.accept(),
             SocketException,
             Catch::Matchers::Message("Failed to accept: [95] Operation not supported")
         );
-        useMockAccept = false;
     }
 }
 TEST_CASE("Socket Send and Recv", "[Socket]") {

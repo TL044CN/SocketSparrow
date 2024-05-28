@@ -65,11 +65,20 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     endif()
 endif()
 
+find_package(OpenSSL REQUIRED)
+
 add_library(${PROJECT_NAME}
     source/Endpoint.cpp
     source/Exceptions.cpp
     source/Socket.cpp
+    source/TLSSocket.cpp
     source/Util.cpp
+)
+
+target_link_libraries(${PROJECT_NAME}
+    PUBLIC
+        OpenSSL::SSL
+        OpenSSL::Crypto
 )
 
 target_include_directories(${PROJECT_NAME}

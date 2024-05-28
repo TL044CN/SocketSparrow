@@ -66,6 +66,32 @@ Socket::~Socket() {
 }
 
 
+void Socket::setState(SocketState state) {
+    mState = state;
+}
+
+
+int Socket::getNativeSocket() const {
+    return mNativeSocket;
+}
+
+SocketType Socket::getProtocol() const {
+    return mProtocol;
+}
+
+AddressFamily Socket::getAddressFamily() const {
+    return mAddressFamily;
+}
+
+std::shared_ptr<Endpoint> Socket::getEndpoint() const {
+    return mEndpoint;
+}
+
+SocketState Socket::getState() const {
+    return mState;
+}
+
+
 void Socket::bind(std::shared_ptr<Endpoint> endpoint) {
     mEndpoint = endpoint;
     if ( ::bind(mNativeSocket, mEndpoint->c_addr(), mEndpoint->c_size()) == -1 ) {
@@ -175,7 +201,7 @@ void Socket::enableNonBlocking(bool enable) {
     }
 }
 
-ssize_t Socket::send(std::vector<char> data) const {
+ssize_t Socket::send(const std::vector<char>& data) const {
     ssize_t sent = ::send(mNativeSocket, data.data(), data.size(), 0);
     if ( sent == -1 ) {
         throw SendError(errno, "Failed to send");
@@ -192,14 +218,20 @@ ssize_t Socket::recv(std::vector<char>& buffer, ExplicitBool autoresize) const {
     if(autoresize) {
         buffer.resize(1024);
     }
-    while(totalReceived < buffer.size()) {
-        ssize_t received = ::recv(mNativeSocket, buffer.data() + totalReceived, buffer.size() - totalReceived, 0);
-        if ( received == -1 ) {
+    ssize_t received = 1;
+    while(received > 0) {
+        received = ::recv(mNativeSocket, buffer.data() + totalReceived, 1024, 0);
+        if ( received < 0 ) {
             throw RecvError(errno, "Failed to receive");
         }
+
+        if(received == 0) {
+            break;
+        }
+
         totalReceived += received;
-        if(autoresize && buffer.size() - totalReceived < 1024 && received == 1024) {
-            buffer.resize(buffer.size() + 1024);
+        if(autoresize && buffer.size() - totalReceived < buffer.size() / 2) {
+            buffer.resize(buffer.size() * 2);
         }
 
         if(received < 1024) {
