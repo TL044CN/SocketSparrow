@@ -31,7 +31,7 @@ TEST_CASE("Socket Creation", "[Socket]") {
     SECTION("Socket Creation with AddressFamily and Protocol") {
         REQUIRE_NOTHROW(Socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP));
 
-        auto mockGuard = MockingController::createMockGuard(MockingController::MockType::SOCKET);
+        auto mockGuard = MockingController::createMockGuard("socket");
         CHECK_THROWS_MATCHES(
             Socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP),
             SocketException,
@@ -44,7 +44,7 @@ TEST_CASE("Socket Creation", "[Socket]") {
         REQUIRE_NOTHROW(Socket(SocketSparrow::AddressFamily::IPv4, endpoint));
 
         // deliberately make the socket call fail
-        auto mockGuard = MockingController::createMockGuard(MockingController::MockType::SOCKET);
+        auto mockGuard = MockingController::createMockGuard("socket");
         CHECK_THROWS_MATCHES(
             Socket(SocketSparrow::AddressFamily::IPv4, endpoint),
             SocketException,
@@ -126,7 +126,7 @@ TEST_CASE("Socket Options", "[Socket]") {
     CHECK_NOTHROW(socket.enableNonBlocking(true));
     CHECK_NOTHROW(socket.enableNonBlocking(false));
 
-    auto mockGuard = MockingController::createMockGuard(MockingController::MockType::SETSOCKOPT);
+    auto mockGuard = MockingController::createMockGuard("setsockopt");
     CHECK_THROWS_MATCHES(
         socket.enableAddressReuse(true),
         SocketException,
@@ -214,7 +214,7 @@ TEST_CASE("Socket Listen and Accept", "[Socket]") {
 
         socket4.bind(endpoint);
         {
-            auto mockGuard = MockingController::createMockGuard(MockingController::MockType::LISTEN);
+            auto mockGuard = MockingController::createMockGuard("listen");
             CHECK_THROWS_MATCHES(
                 socket4.listen(5),
                 SocketException,
@@ -255,7 +255,7 @@ TEST_CASE("Socket Listen and Accept", "[Socket]") {
     SECTION("Check Accept Failures", "[Socket]") {
         socket3.bind(endpoint);
         socket3.listen(5);
-        auto mockGuard = MockingController::createMockGuard(MockingController::MockType::ACCEPT);
+        auto mockGuard = MockingController::createMockGuard("accept");
         CHECK_THROWS_MATCHES(
             socket3.accept(),
             SocketException,

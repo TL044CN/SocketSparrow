@@ -12,39 +12,30 @@
 #include "Mocking.hpp"
 #include <arpa/inet.h>
 
-CREATE_MOCK_FUNC_DEFINITIONS(socket, int, int, int, int)
-CREATE_MOCK_FUNC_DEFINITIONS(listen, int, int, int);
-CREATE_MOCK_FUNC_DEFINITIONS(accept, int, int, struct sockaddr*, socklen_t*);
-CREATE_MOCK_FUNC_DEFINITIONS(setsockopt, int, int, int, int, const void*, socklen_t);
+template<typename... Args>
+using MF = MockingController::MockFunction<Args...>;
 
-int socket(int fd, int domain, int type) {
-    return MockingController::call(
-        MockingController::MockType::SOCKET,
-        real_socket, mock_socket,
-        fd, domain, type
-    );
-};
+int socket(int domain, int type, int protocol) {
+    static MF<int, int, int, int> mock_socket("socket", ::socket);
 
-int listen(int fd, int backlog) {
-    return MockingController::call(
-        MockingController::MockType::LISTEN,
-        real_listen, mock_listen,
-        fd, backlog
-    );
-};
+    return mock_socket(domain, type, protocol);
+}
 
-int accept(int fd, struct sockaddr* addr, socklen_t* addrlen) {
-    return MockingController::call(
-        MockingController::MockType::ACCEPT,
-        real_accept, mock_accept,
-        fd, addr, addrlen
-    );
-};
+int listen(int sockfd, int backlog) {
+    static MF<int, int, int> mock_listen("listen", ::listen);
 
-int setsockopt(int fd, int level, int optname, const void* optval, socklen_t optlen) {
-    return MockingController::call(
-        MockingController::MockType::SETSOCKOPT,
-        real_setsockopt, mock_setsockopt,
-        fd, level, optname, optval, optlen
-    );
-};
+    return mock_listen(sockfd, backlog);
+}
+
+int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
+    static MF<int, int, struct sockaddr*, socklen_t*> mock_accept("accept", ::accept);
+
+    return mock_accept(sockfd, addr, addrlen);
+}
+
+int setsockopt(int sockfd, int level, int optname, const void* optval, socklen_t optlen) {
+    static MF<int, int, int, int, const void*, socklen_t>
+        mock_setsockopt("setsockopt", ::setsockopt);
+
+    return mock_setsockopt(sockfd, level, optname, optval, optlen);
+}
