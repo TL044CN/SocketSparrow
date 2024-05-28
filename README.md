@@ -22,7 +22,7 @@ Socket myServer(AddressFamily::IPv4, SocketType::TCP);
 myServer.bindToPort(8080);
 
 // listen to new connections. In this case the socket has a backlog of 5.
-myServer.listeh(5);
+myServer.listen(5);
 
 // accept new connections
 auto myConnection = myServer.accept();
@@ -40,7 +40,7 @@ auto myConnection = myServer.accept();
 Socket myClient(AddressFamily::IPv4, SocketType::TCP);
 
 // define the Servers endpoint
-Endpoint serverAddress("localhost", 8080);
+auto serverAddress = std::make_shared<Endpoint>("localhost", 8080);
 
 // connect to the Server
 myClient.connect(serverAddress);
