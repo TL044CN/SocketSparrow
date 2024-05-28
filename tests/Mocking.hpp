@@ -11,27 +11,38 @@
 
 #pragma once
 
-#include <arpa/inet.h>
+#include <cstdint>
 #include <dlfcn.h>
-#include <errno.h>
+#include <cerrno>
+#include <functional>
+#include <cassert>
 
  /**
-  * @brief MockingController is a singleton class that controls the mocking of system calls
+  * @brief MockingController is a singleton class that controls the mocking of
+  *        system calls
   */
 class MockingController {
 public:
     /**
-     * @brief MockType is an enum class that represents the different types of system calls that can be mocked
+     * @brief MockType is an enum class that represents the different types of
+     *        system calls that can be mocked
      */
     enum class MockType {
-        Socket,     ///< socket()
-        Listen,     ///< listen()
-        Accept,     ///< accept()
-        Setsockopt  ///< setsockopt()
+        SOCKET,     ///< socket()
+        LISTEN,     ///< listen()
+        ACCEPT,     ///< accept()
+        SETSOCKOPT  ///< setsockopt()
     };
+    static constexpr inline uint32_t ceMockTypeCount = 4;
+
+    static constexpr inline uint32_t mockTypeToInt(const MockType type) {
+        return static_cast<uint32_t>(type);
+    }
+
 private:
     /**
-     * @brief MockGuard is a helper class that resets a boolean flag to its initial value when it goes out of scope
+     * @brief MockGuard is a helper class that resets a boolean flag to its
+     *        initial value when it goes out of scope
      */
     class MockGuard {
         bool mInitialValue;
@@ -55,10 +66,7 @@ private:
         }
     };
 
-    bool mockSocket = false;
-    bool mockListen = false;
-    bool mockAccept = false;
-    bool mockSetsockopt = false;
+    bool mockFlag[ceMockTypeCount] = { false };
 
     MockingController() {}
 
@@ -68,7 +76,8 @@ private:
 public:
 
     /**
-     * @brief getInstance is a static function that returns the singleton instance of the MockingController
+     * @brief getInstance is a static function that returns the singleton
+     *        instance of the MockingController
      * @return MockingController& The singleton instance of the MockingController
      */
     static MockingController& getInstance() {
@@ -77,26 +86,21 @@ public:
     };
 
     /**
-     * @brief getMockState is a helper function that returns the mocking state of a system call
+     * @brief getMockState is a helper function that returns the mocking state
+     *        of a system call
      * @param type The type of the system call
      * @return bool The mocking state of the system call
      */
-    static bool& getMockState(MockType type) {
-        switch ( type ) {
-        case MockType::Socket:
-            return getInstance().mockSocket;
-        case MockType::Listen:
-            return getInstance().mockListen;
-        case MockType::Accept:
-            return getInstance().mockAccept;
-        case MockType::Setsockopt:
-            return getInstance().mockSetsockopt;
-        }
+    static bool& getMockState(const MockType type) {
+        assert(mockTypeToInt(type) < ceMockTypeCount && mockTypeToInt(type) >= 0);
+        uint32_t index = mockTypeToInt(type);
+        return getInstance().mockFlag[index];
     }
 
     /**
-     * @brief createMockGuard is a helper function that creates a MockGuard object
-     *        The MockGuard object resets the mocking state to its initial value when it goes out of scope
+     * @brief createMockGuard is a helper function that creates a MockGuard
+     *        The MockGuard object resets the mocking state to its initial
+     *        value when it goes out of scope
      * @param type The type of the system call to mock
      * @param state The state of the mocking
      * @return MockGuard The MockGuard object
@@ -105,90 +109,53 @@ public:
         return MockGuard(type, state);
     }
 
+    /**
+     * @brief call is a helper function that calls the real or mock function
+     *        based on the mocking state
+     * @tparam Func The type of the function
+     * @tparam Args The type of the arguments
+     * @param type The type of the system call
+     * @param realFunc The real function
+     * @param mockFunc The mock function
+     * @param args The arguments
+     * @return auto The return value of the function
+     */
+    template<typename Func, typename... Args>
+    static auto call(MockType type, Func realFunc, Func mockFunc, Args... args)
+        -> decltype(realFunc()(args...)) {
+        if ( getMockState(type) )
+            return mockFunc()(args...);
+        return realFunc()(args...);
+    }
 };
 
-// === System Call Mocking ===
-
 /**
- * @brief Macro to create a mock function for a system call
- * @param func_name The name of the function to mock
+ * @brief CREATE_MOCK_FUNC_DECLARATIONS is a macro that creates the necessary
+ *        declarations for mocking a system call
+ * @param func_name The name of the function
  * @param return_type The return type of the function
  * @param ... The arguments of the function
- * @details The macro creates a mock function that sets errno to EOPNOTSUPP and returns -1
- *          The macro also creates a real function pointer that points to the original function
- *          The macro also creates a mock function pointer that points to the mock function
- * @example CREATE_MOCK_FUNC(socket, int, int, int, int);
  */
-#define CREATE_MOCK_FUNC(func_name, return_type, ...) \
-    typedef return_type(*func_name##_func_t)(__VA_ARGS__); \
-    func_name##_func_t real_##func_name = (func_name##_func_t)dlsym(RTLD_NEXT, #func_name); \
-    func_name##_func_t mock_##func_name = []( __VA_ARGS__ ) -> return_type { \
-        errno = EOPNOTSUPP; \
-        return -1; \
-    }
-
-CREATE_MOCK_FUNC(socket, int, int, int, int);
-CREATE_MOCK_FUNC(listen, int, int, int);
-CREATE_MOCK_FUNC(accept, int, int, struct sockaddr*, socklen_t*);
-CREATE_MOCK_FUNC(setsockopt, int, int, int, int, const void*, socklen_t);
-
-using MT = MockingController::MockType;
+#define CREATE_MOCK_FUNC_DECLARATIONS(func_name, return_type, ...) \
+    std::function<return_type(__VA_ARGS__)>& real_##func_name();\
+    std::function<return_type(__VA_ARGS__)>& mock_##func_name();
 
 /**
- * @brief Mocking system call socket
- * @param domain The domain of the socket
- * @param type The type of the socket
- * @param protocol The protocol of the socket
- * @return int The file descriptor of the socket
+ * @brief CREATE_MOCK_FUNC_DEFINITIONS is a macro that creates the necessary
+ *        definitions for mocking a system call
+ * @param func_name The name of the function
+ * @param return_type The return type of the function
+ * @param ... The arguments of the function
  */
-int socket(int domain, int type, int protocol) {
-    if ( MockingController::getMockState(MT::Socket) ) {
-        return mock_socket(domain, type, protocol);
-    }
-    return real_socket(domain, type, protocol);
-}
-
-/**
- * @brief Mocking system call listen
- * @param sockfd The file descriptor of the socket
- * @param backlog The maximum length of the queue of pending connections
- * @return int The return value of the system call
- */
-int listen(int sockfd, int backlog) {
-    if ( MockingController::getMockState(MT::Listen) ) {
-        return mock_listen(sockfd, backlog);
-    }
-    return real_listen(sockfd, backlog);
-}
-
-/**
- * @brief Mocking system call accept
- * @param sockfd The file descriptor of the socket
- * @param addr The address of the client
- * @param addrlen The length of the address
- * @return int The file descriptor of the client socket
- */
-int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
-    if ( MockingController::getMockState(MT::Accept) ) {
-        return mock_accept(sockfd, addr, addrlen);
-    }
-    return real_accept(sockfd, addr, addrlen);
-}
-
-/**
- * @brief Mocking system call setsockopt
- * @param sockfd The file descriptor of the socket
- * @param level The level of the option
- * @param optname The name of the option
- * @param optval The value of the option
- * @param optlen The length of the option
- * @return int The return value of the system call
- */
-int setsockopt(int sockfd, int level, int optname, const void* optval, socklen_t optlen) {
-    if ( MockingController::getMockState(MT::Setsockopt) ) {
-        return mock_setsockopt(sockfd, level, optname, optval, optlen);
-    }
-    return real_setsockopt(sockfd, level, optname, optval, optlen);
-}
-
-// === End System Call Mocking ===
+#define CREATE_MOCK_FUNC_DEFINITIONS(func_name, return_type, ...) \
+    std::function<return_type(__VA_ARGS__)>& real_##func_name(){\
+        static std::function<return_type(__VA_ARGS__)> real = (return_type(*)(__VA_ARGS__))(dlsym(RTLD_NEXT, #func_name));\
+        return real;\
+    };\
+    std::function<return_type(__VA_ARGS__)>& mock_##func_name(){\
+        static std::function<return_type(__VA_ARGS__)> mock = [](__VA_ARGS__) -> return_type { \
+            errno = EOPNOTSUPP; \
+            return -1; \
+        };\
+        return mock;\
+    };

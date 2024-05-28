@@ -19,7 +19,9 @@ add_executable(${PROJECT_NAME}_tests
     test_Utils.cpp
     test_Endpoint.cpp
     test_Socket.cpp
+    test_TLSSocket.cpp
     test_Exceptions.cpp
+    SocketMocking.cpp
 )
 
 # Link required libraries

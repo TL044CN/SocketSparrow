@@ -117,28 +117,5 @@ namespace SocketSparrow {
          */
         ssize_t recv(std::vector<char>& buffer, ExplicitBool autoresize = ExplicitBool(true)) const override;
 
-        /**
-         * @brief Receives data from the internal Socket
-         *        this is used for TCP or UDP Sockets
-         * 
-         * @param buffer the buffer to store the data
-         * @param size the size of the buffer
-         * @return ssize_t the number of bytes received
-         * @throws RecvError if receiving fails
-         * @see SocketSparrow::Socket::recv()
-         */
-        ssize_t recv(std::vector<char>& buffer, size_t size) const override;
-
-        /**
-         * @brief Receives data from the internal Socket
-         *        this is used for TCP or UDP Sockets
-         * 
-         * @param buffer the buffer to store the data
-         * @return ssize_t the number of bytes received
-         * @throws RecvError if receiving fails
-         * @see SocketSparrow::Socket::recv()
-         */
-        ssize_t recv(std::string& buffer) const override;
-
     };
 } // namespace SocketSparrow

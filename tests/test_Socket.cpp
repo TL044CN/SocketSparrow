@@ -2,6 +2,7 @@
 #include "catch2/matchers/catch_matchers_all.hpp"
 #include "catch2/generators/catch_generators_all.hpp"
 
+
 #define private public
 #define protected public
 #include "Socket.hpp"
@@ -9,13 +10,12 @@
 #undef private
 
 #include "Exceptions.hpp"
+#include "SocketMocking.hpp"
 
 #include <future>
 #include <thread>
 #include <chrono>
 #include <atomic>
-
-#include "Mocking.hpp"
 
 using namespace SocketSparrow;
 
@@ -31,11 +31,11 @@ TEST_CASE("Socket Creation", "[Socket]") {
     SECTION("Socket Creation with AddressFamily and Protocol") {
         REQUIRE_NOTHROW(Socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP));
 
-        auto mockGuard = MockingController::createMockGuard(MockingController::MockType::Socket);
+        auto mockGuard = MockingController::createMockGuard(MockingController::MockType::SOCKET);
         CHECK_THROWS_MATCHES(
             Socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP),
             SocketException,
-            Catch::Matchers::Message("Failed to create Socket: [93] Protocol not supported")
+            Catch::Matchers::Message("Failed to create Socket: [95] Operation not supported")
         );
     }
 
@@ -44,11 +44,11 @@ TEST_CASE("Socket Creation", "[Socket]") {
         REQUIRE_NOTHROW(Socket(SocketSparrow::AddressFamily::IPv4, endpoint));
 
         // deliberately make the socket call fail
-        auto mockGuard = MockingController::createMockGuard(MockingController::MockType::Socket);
+        auto mockGuard = MockingController::createMockGuard(MockingController::MockType::SOCKET);
         CHECK_THROWS_MATCHES(
             Socket(SocketSparrow::AddressFamily::IPv4, endpoint),
             SocketException,
-            Catch::Matchers::Message("Failed to create Socket: [93] Protocol not supported")
+            Catch::Matchers::Message("Failed to create Socket: [95] Operation not supported")
         );
     }
 }
@@ -126,7 +126,7 @@ TEST_CASE("Socket Options", "[Socket]") {
     CHECK_NOTHROW(socket.enableNonBlocking(true));
     CHECK_NOTHROW(socket.enableNonBlocking(false));
 
-    auto mockGuard = MockingController::createMockGuard(MockingController::MockType::Setsockopt);
+    auto mockGuard = MockingController::createMockGuard(MockingController::MockType::SETSOCKOPT);
     CHECK_THROWS_MATCHES(
         socket.enableAddressReuse(true),
         SocketException,
@@ -214,7 +214,7 @@ TEST_CASE("Socket Listen and Accept", "[Socket]") {
 
         socket4.bind(endpoint);
         {
-            auto mockGuard = MockingController::createMockGuard(MockingController::MockType::Listen);
+            auto mockGuard = MockingController::createMockGuard(MockingController::MockType::LISTEN);
             CHECK_THROWS_MATCHES(
                 socket4.listen(5),
                 SocketException,
@@ -255,7 +255,7 @@ TEST_CASE("Socket Listen and Accept", "[Socket]") {
     SECTION("Check Accept Failures", "[Socket]") {
         socket3.bind(endpoint);
         socket3.listen(5);
-        auto mockGuard = MockingController::createMockGuard(MockingController::MockType::Accept);
+        auto mockGuard = MockingController::createMockGuard(MockingController::MockType::ACCEPT);
         CHECK_THROWS_MATCHES(
             socket3.accept(),
             SocketException,
