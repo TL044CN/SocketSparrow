@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 3.16)
 set(CMAKE_CXX_STANDARD 20)
 set(CXX_STANDARD_REQUIRED ON)
 
-if(NOT PROJECT_NAME)
-    set(IS_SUBMODULE OFF)
-else()
+if(DEFINED PROJECT_NAME AND NOT "${PROJECT_NAME}" STREQUAL "")
     set(IS_SUBMODULE ON)
+else()
+    set(IS_SUBMODULE OFF)
 endif()
 
 find_package(Git)
@@ -126,8 +126,8 @@ install(EXPORT ${PROJECT_NAME}Targets
 
 #prepare for coverage report
 if(NOT IS_SUBMODULE)
-if(GCOV AND LCOV AND GENHTML)
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    if(GCOV AND LCOV AND GENHTML)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
             target_compile_options(${PROJECT_NAME} PRIVATE -fprofile-arcs -ftest-coverage)
         elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
             target_compile_options(${PROJECT_NAME} PRIVATE -fprofile-instr-generate -fcoverage-mapping)
