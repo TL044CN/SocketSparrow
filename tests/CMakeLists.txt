@@ -13,9 +13,21 @@ if(NOT catch2_POPULATED)
   add_subdirectory(${catch2_SOURCE_DIR} ${catch2_BINARY_DIR})
 endif()
 
+FetchContent_Declare(
+  MockingBird
+  GIT_REPOSITORY https://github.com/TL044CN/Mockingbird.git
+  GIT_TAG        1.0.5
+)
+
+# Setup Catch2
+FetchContent_GetProperties(MockingBird)
+if(NOT mockingbird_POPULATED)
+  FetchContent_Populate(MockingBird)
+  add_subdirectory(${mockingbird_SOURCE_DIR} ${mockingbird_BINARY_DIR})
+endif()
+
 # Add tests
 add_executable(${PROJECT_NAME}_tests
-  Mocking.cpp
   SocketMocking.cpp
   test_main.cpp
   test_Utils.cpp
@@ -29,6 +41,7 @@ add_executable(${PROJECT_NAME}_tests
 target_link_libraries(${PROJECT_NAME}_tests
     PRIVATE
         Catch2::Catch2
+        MockingBird
         ${PROJECT_NAME}
 )
 
