@@ -13,6 +13,7 @@
 #include "Enums.hpp"
 #include "Exceptions.hpp"
 #include "Socket.hpp"
+#include "TLSSocket.hpp"
 #include "UDPPacket.hpp"
 #include "Util.hpp"
 
