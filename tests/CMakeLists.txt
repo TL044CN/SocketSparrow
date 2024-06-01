@@ -64,7 +64,7 @@ include(Catch)
 catch_discover_tests(${PROJECT_NAME}_tests)
 
 # Create coverage target
-if(NOT ${PROJECT_NAME}_IS_SUBMODULE)
+if(NOT IS_SUBMODULE)
 
   if(GCOV AND LCOV AND GENHTML)
     message("Compiler: ${CMAKE_CXX_COMPILER_ID}")
