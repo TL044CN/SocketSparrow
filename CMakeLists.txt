@@ -39,8 +39,11 @@ project(SocketSparrow
     DESCRIPTION "A simple Networking Library for C++"
     LANGUAGES CXX
 )
-
-message("Building ${PROJECT_NAME} version ${PROJECT_VERSION}")
+if(IS_SUBMODULE)
+    message("Building ${PROJECT_NAME} version ${PROJECT_VERSION} as Submodule")
+else()
+    message("Building ${PROJECT_NAME} version ${PROJECT_VERSION}")
+endif()
 
 find_program(LCOV lcov)
 find_program(GENHTML genhtml)
@@ -145,5 +148,7 @@ endif()
 set(${PROJECT_NAME}_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # tests:
-enable_testing()
-add_subdirectory(tests)
+if(NOT IS_SUBMODULE)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

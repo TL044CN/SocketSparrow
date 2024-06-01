@@ -20,6 +20,11 @@
 using namespace SocketSparrow;
 using MockingBird::MockingController;
 
+constexpr const char* ceSocketOpNotSupportedMsg = "Failed to create Socket: [95] Operation not supported";
+constexpr const char* ceSocketOptOpNotSupportedMsg = "Failed to set socket option: [95] Operation not supported";
+constexpr const char* ceListenOpNotSupportedMsg = "Failed to listen: [95] Operation not supported";
+constexpr const char* ceAcceptOpNotSupportedMsg = "Failed to accept: [95] Operation not supported";
+
 TEST_CASE("Socket Creation", "[Socket]") {
     SECTION("Socket Creation with invalid file descriptor") {
         CHECK_THROWS_MATCHES(
@@ -36,7 +41,7 @@ TEST_CASE("Socket Creation", "[Socket]") {
         CHECK_THROWS_MATCHES(
             Socket(SocketSparrow::AddressFamily::IPv4, SocketSparrow::SocketType::TCP),
             SocketException,
-            Catch::Matchers::Message("Failed to create Socket: [95] Operation not supported")
+            Catch::Matchers::Message(ceSocketOpNotSupportedMsg)
         );
     }
 
@@ -49,7 +54,7 @@ TEST_CASE("Socket Creation", "[Socket]") {
         CHECK_THROWS_MATCHES(
             Socket(SocketSparrow::AddressFamily::IPv4, endpoint),
             SocketException,
-            Catch::Matchers::Message("Failed to create Socket: [95] Operation not supported")
+            Catch::Matchers::Message(ceSocketOpNotSupportedMsg)
         );
     }
 }
@@ -131,32 +136,32 @@ TEST_CASE("Socket Options", "[Socket]") {
     CHECK_THROWS_MATCHES(
         socket.enableAddressReuse(true),
         SocketException,
-        Catch::Matchers::Message("Failed to set socket option: [95] Operation not supported")
+        Catch::Matchers::Message(ceSocketOptOpNotSupportedMsg)
     );
     CHECK_THROWS_MATCHES(
         socket.enablePortReuse(true),
         SocketException,
-        Catch::Matchers::Message("Failed to set socket option: [95] Operation not supported")
+        Catch::Matchers::Message(ceSocketOptOpNotSupportedMsg)
     );
     CHECK_THROWS_MATCHES(
         socket.enableBroadcast(true),
         SocketException,
-        Catch::Matchers::Message("Failed to set socket option: [95] Operation not supported")
+        Catch::Matchers::Message(ceSocketOptOpNotSupportedMsg)
     );
     CHECK_THROWS_MATCHES(
         socket.enableAddressReuse(false),
         SocketException,
-        Catch::Matchers::Message("Failed to set socket option: [95] Operation not supported")
+        Catch::Matchers::Message(ceSocketOptOpNotSupportedMsg)
     );
     CHECK_THROWS_MATCHES(
         socket.enablePortReuse(false),
         SocketException,
-        Catch::Matchers::Message("Failed to set socket option: [95] Operation not supported")
+        Catch::Matchers::Message(ceSocketOptOpNotSupportedMsg)
     );
     CHECK_THROWS_MATCHES(
         socket.enableBroadcast(false),
         SocketException,
-        Catch::Matchers::Message("Failed to set socket option: [95] Operation not supported")
+        Catch::Matchers::Message(ceSocketOptOpNotSupportedMsg)
     );
 
 }
@@ -219,7 +224,7 @@ TEST_CASE("Socket Listen and Accept", "[Socket]") {
             CHECK_THROWS_MATCHES(
                 socket4.listen(5),
                 SocketException,
-                Catch::Matchers::Message("Failed to listen: [95] Operation not supported")
+                Catch::Matchers::Message(ceListenOpNotSupportedMsg)
             );
         }
 
@@ -260,7 +265,7 @@ TEST_CASE("Socket Listen and Accept", "[Socket]") {
         CHECK_THROWS_MATCHES(
             socket3.accept(),
             SocketException,
-            Catch::Matchers::Message("Failed to accept: [95] Operation not supported")
+            Catch::Matchers::Message(ceAcceptOpNotSupportedMsg)
         );
     }
 }
