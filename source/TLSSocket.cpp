@@ -1,25 +1,46 @@
 #include "TLSSocket.hpp"
 #include "Exceptions.hpp"
 
+#include <openssl/err.h>
+
 namespace SocketSparrow {
 
-TLSSocket::TLSSocket(int fd, std::shared_ptr<Endpoint> endpoint, SocketType protocol)
-    : Socket(fd, endpoint, protocol) {
-    mOpenSSL_CTX = SSL_CTX_new(SSLv23_client_method());
+TLSSocket::TLSSocket(
+    int fd,
+    std::shared_ptr<Endpoint> endpoint,
+    SocketType protocol,
+    TLSSocketMode mode
+) : Socket(fd, endpoint, protocol), mMode(mode) {
+    if(mode == TLSSocketMode::Client) {
+        mOpenSSL_CTX = SSL_CTX_new(TLS_client_method());
+    } else {
+        mOpenSSL_CTX = SSL_CTX_new(TLS_server_method());
+    }
     mOpenSSL_SSL = SSL_new(mOpenSSL_CTX);
     SSL_set_fd(mOpenSSL_SSL, getNativeSocket());
 }
 
-TLSSocket::TLSSocket(AddressFamily af, SocketType protocol)
-    : Socket(af, protocol) {
-    mOpenSSL_CTX = SSL_CTX_new(SSLv23_client_method());
+TLSSocket::TLSSocket(AddressFamily af, SocketType protocol, TLSSocketMode mode)
+    : Socket(af, protocol), mMode(mode) {
+    if(mode == TLSSocketMode::Client) {
+        mOpenSSL_CTX = SSL_CTX_new(TLS_client_method());
+    } else {
+        mOpenSSL_CTX = SSL_CTX_new(TLS_server_method());
+    }
     mOpenSSL_SSL = SSL_new(mOpenSSL_CTX);
     SSL_set_fd(mOpenSSL_SSL, getNativeSocket());
 }
 
-TLSSocket::TLSSocket(AddressFamily af, std::shared_ptr<Endpoint> endpoint)
-    : Socket(af, endpoint) {
-    mOpenSSL_CTX = SSL_CTX_new(SSLv23_server_method());
+TLSSocket::TLSSocket(
+    AddressFamily af,
+    std::shared_ptr<Endpoint> endpoint,
+    TLSSocketMode mode
+) : Socket(af, endpoint), mMode(mode) {
+    if(mode == TLSSocketMode::Client) {
+        mOpenSSL_CTX = SSL_CTX_new(TLS_client_method());
+    } else {
+        mOpenSSL_CTX = SSL_CTX_new(TLS_server_method());
+    }
     mOpenSSL_SSL = SSL_new(mOpenSSL_CTX);
     SSL_set_fd(mOpenSSL_SSL, getNativeSocket());
 }
@@ -31,10 +52,21 @@ TLSSocket::~TLSSocket() {
 }
 
 
+TLSSocketMode TLSSocket::getMode() const {
+    return mMode;
+}
+
 void TLSSocket::connect(std::shared_ptr<Endpoint> endpoint) {
     Socket::connect(endpoint);
-    if(SSL_connect(mOpenSSL_SSL) >= 0) {
-        throw SocketException("Failed to connect to endpoint");
+    auto err = SSL_connect(mOpenSSL_SSL);
+    if(err < 0) {
+        if(FILE* log = fopen("error.txt", "w")) {
+            ERR_print_errors_fp(log);
+            fclose(log);
+        }
+        throw TLSSocketException(SSL_get_error(mOpenSSL_SSL, err),"Failed to connect to endpoint");
+    } else if (err == 0) {
+        throw TLSSocketException("Connection closed by peer");
     }
 }
 
@@ -59,20 +91,18 @@ std::shared_ptr<Socket> TLSSocket::accept() {
         throw SocketException("Failed to accept connection");
     }
 
-    std::shared_ptr<Endpoint> clientEndpoint = std::make_shared<Endpoint>(clientAddr, clientAddrSize);
-    TLSSocket* RawConnection = new TLSSocket(clientSocket, clientEndpoint, getProtocol());
+    auto clientEndpoint = std::make_shared<Endpoint>(clientAddr, clientAddrSize);
 
-    SSL_set_fd(RawConnection->mOpenSSL_SSL, RawConnection->getNativeSocket());
+    // Because the Constructor that is being called is Private, it cannot be called by std::make_shared
+    auto Connection = std::shared_ptr<TLSSocket>(new TLSSocket(clientSocket, clientEndpoint, getProtocol()));
 
-    if(SSL_accept(RawConnection->mOpenSSL_SSL) <= 0) {
+    SSL_set_fd(Connection->mOpenSSL_SSL, Connection->getNativeSocket());
+    if(SSL_accept(Connection->mOpenSSL_SSL) <= 0) {
         throw SocketException("Failed to accept connection");
     }
 
-    // cannot construct TLSSocket directly because of protected constructor 
-    std::shared_ptr<Socket> socket = std::shared_ptr<Socket>(RawConnection);
-    std::static_pointer_cast<TLSSocket>(socket)->setState(SocketState::Connected);
-
-    return socket;
+    Connection->setState(SocketState::Connected);
+    return Connection;
 }
 
 ssize_t TLSSocket::send(const std::vector<char>& data) const {

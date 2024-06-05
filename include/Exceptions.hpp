@@ -40,7 +40,7 @@ public:
      * @brief Returns the Exception Message
      * @return const char* Exception Message
      */
-    virtual const char* what() const noexcept override;
+    const char* what() const noexcept override;
 };
 
 
@@ -156,6 +156,34 @@ public:
      * @param message the message to display
      */
     explicit SocketException(int error, const std::string& message = "Socket Exception");
+
+};
+
+/**
+ * @brief Exception for TLS Socket Errors
+ *        This is thrown when a TLS Socket operation fails
+ */
+class TLSSocketException : public SocketException {
+public:
+    /**
+     * @brief Construct a new TLS Socket Exception object
+     */
+    explicit TLSSocketException();
+
+    /**
+     * @brief Construct a new TLS Socket Exception object
+     *
+     * @param message the message to display
+     */
+    explicit TLSSocketException(const std::string& message);
+
+    /**
+     * @brief Construct a new TLS Socket Exception object
+     *
+     * @param error the error code
+     * @param message the message to display
+     */
+    explicit TLSSocketException(int error, const std::string& message = "TLS Socket Exception");
 
 };
 

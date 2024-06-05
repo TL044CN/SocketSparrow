@@ -46,4 +46,12 @@ namespace SocketSparrow {
         Unknown      ///< Unknown State
     };
 
+    /**
+     * @brief Mode of a TLS Socket
+     */
+    enum class TLSSocketMode {
+        Client, ///< Client Mode
+        Server  ///< Server Mode
+    };
+
 } // namespace SocketSparrow

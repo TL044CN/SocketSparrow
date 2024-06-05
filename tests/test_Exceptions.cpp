@@ -115,6 +115,28 @@ TEST_CASE("Exception Classes", "[Exceptions]") {
         CHECK_THROWS_AS([] { throw SocketException(1, "Custom Message"); }(), SocketSparrowException);
     }
 
+    SECTION("TLSSocketException") {
+        REQUIRE_NOTHROW(TLSSocketException());
+
+        CHECK_THROWS_WITH([] { throw TLSSocketException(); }(), "TLS Socket Exception");
+        CHECK_THROWS_WITH([] { throw TLSSocketException("Custom Message"); }(), "Custom Message");
+        CHECK_THROWS_WITH([] { throw TLSSocketException(1); }(), "TLS Socket Exception: [1] Operation not permitted");
+        CHECK_THROWS_WITH([] { throw TLSSocketException(1, "Custom Message"); }(), "Custom Message: [1] Operation not permitted");
+
+        CHECK_THROWS_AS([] { throw TLSSocketException(); }(), TLSSocketException);
+        CHECK_THROWS_AS([] { throw TLSSocketException(1); }(), TLSSocketException);
+        CHECK_THROWS_AS([] { throw TLSSocketException("Custom Message"); }(), TLSSocketException);
+        CHECK_THROWS_AS([] { throw TLSSocketException(1, "Custom Message"); }(), TLSSocketException);
+        CHECK_THROWS_AS([] { throw TLSSocketException(); }(), SocketException);
+        CHECK_THROWS_AS([] { throw TLSSocketException(1); }(), SocketException);
+        CHECK_THROWS_AS([] { throw TLSSocketException("Custom Message"); }(), SocketException);
+        CHECK_THROWS_AS([] { throw TLSSocketException(1, "Custom Message"); }(), SocketException);
+        CHECK_THROWS_AS([] { throw TLSSocketException(); }(), SocketSparrowException);
+        CHECK_THROWS_AS([] { throw TLSSocketException(1); }(), SocketSparrowException);
+        CHECK_THROWS_AS([] { throw TLSSocketException("Custom Message"); }(), SocketSparrowException);
+        CHECK_THROWS_AS([] { throw TLSSocketException(1, "Custom Message"); }(), SocketSparrowException);
+    }
+
     SECTION("SendError") {
         REQUIRE_NOTHROW(SendError());
 

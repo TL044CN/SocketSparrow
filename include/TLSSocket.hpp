@@ -23,6 +23,7 @@ namespace SocketSparrow {
     private:
         SSL_CTX* mOpenSSL_CTX;
         SSL* mOpenSSL_SSL;
+        TLSSocketMode mMode;
 
     protected:
             /**
@@ -31,9 +32,14 @@ namespace SocketSparrow {
          * @param fd file descriptor of the socket
          * @param endpoint the endpoint to use (contains address and port)
          * @param protocol the protocol to use (TCP/UDP)
+         * @param mode the mode of the TLS Socket
          * @throws SocketException if the file descriptor is invalid
          */
-        TLSSocket(int fd, std::shared_ptr<Endpoint> endpoint, SocketType protocol);
+        TLSSocket(
+            int fd, std::shared_ptr<Endpoint> endpoint,
+            SocketType protocol,
+            TLSSocketMode mode = TLSSocketMode::Client
+        );
 
     public:
     /// Constructors
@@ -42,24 +48,41 @@ namespace SocketSparrow {
          * 
          * @param af Address Family
          * @param protocol Socket Type
+         * @param mode TLS Mode
          */
-        TLSSocket(AddressFamily af, SocketType protocol);
+        TLSSocket(
+            AddressFamily af,
+            SocketType protocol,
+            TLSSocketMode mode = TLSSocketMode::Client
+        );
 
         /**
          * @brief Construct a new TLSSocket object
          * 
          * @param af Address Family
          * @param endpoint Endpoint
+         * @param mode TLS Mode
          */
-        TLSSocket(AddressFamily af, std::shared_ptr<Endpoint> endpoint);
+        TLSSocket(
+            AddressFamily af,
+            std::shared_ptr<Endpoint> endpoint,
+            TLSSocketMode mode = TLSSocketMode::Client
+        );
 
     /// Destructor
         /**
          * @brief Destroy the TLSSocket object
          */
-        ~TLSSocket();
+        virtual ~TLSSocket();
 
     /// Public Methods
+        /**
+         * @brief Get the Mode of the TLS Socket
+         * 
+         * @return TLSSocketMode the mode of the TLS Socket
+         */
+        TLSSocketMode getMode() const;
+
         /**
          * @brief Connect to an endpoint
          * 

@@ -1,7 +1,9 @@
 #include "Exceptions.hpp"
 #include "Util.hpp"
 
+#include <format>
 #include <cstring>
+#include <openssl/err.h>
 
 namespace SocketSparrow {
 
@@ -25,7 +27,7 @@ InvalidAddressFamilyException::InvalidAddressFamilyException(AddressFamily famil
 
 InvalidPortException::InvalidPortException(const std::string& message): EndpointException(message) {}
 InvalidPortException::InvalidPortException(int port, const std::string& message)
-    : EndpointException(message + ": " + std::to_string(port)) {}
+    : EndpointException(std::format("{}: {}", message, port)) {}
 
 InvalidAddressException::InvalidAddressException(const std::string& message)
     : EndpointException(message) {}
@@ -36,7 +38,16 @@ InvalidAddressException::InvalidAddressException(const std::string& address, con
 SocketException::SocketException(): SocketSparrowException("Socket Exception") {}
 SocketException::SocketException(const std::string& message): SocketSparrowException(message) {}
 SocketException::SocketException(int error, const std::string& message)
-    : SocketSparrowException(message + ": [" + std::to_string(error) + "] " + strerror(error)) {}
+    : SocketSparrowException(std::format("{}: [{}] {}", message, error, strerror(error))) {}
+
+TLSSocketException::TLSSocketException(): SocketException("TLS Socket Exception") {}
+TLSSocketException::TLSSocketException(const std::string& message): SocketException(message) {}
+TLSSocketException::TLSSocketException(int error, const std::string& message) {
+    mMessage = std::format(
+        "{}: [{}] {}",
+        message, error, ERR_error_string(error, nullptr)
+    );
+}
 
 SendError::SendError(): SocketException("Send Error") {}
 SendError::SendError(const std::string& message): SocketException(message) {}
