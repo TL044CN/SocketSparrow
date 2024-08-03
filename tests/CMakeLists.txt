@@ -6,36 +6,23 @@ FetchContent_Declare(
   GIT_TAG        v3.4.0
 )
 
-# Setup Catch2
-FetchContent_GetProperties(Catch2)
-if(NOT catch2_POPULATED)
-  FetchContent_Populate(Catch2)
-  add_subdirectory(${catch2_SOURCE_DIR} ${catch2_BINARY_DIR})
-endif()
+FetchContent_MakeAvailable(Catch2)
 
 FetchContent_Declare(
   MockingBird
-  GIT_REPOSITORY https://github.com/TL044CN/Mockingbird.git
-  GIT_TAG        1.0.5
+  GIT_REPOSITORY https://github.com/TL044CN/Mockingbird
+  GIT_TAG 1.0.6
 )
 
-# Setup Catch2
-FetchContent_GetProperties(MockingBird)
-if(NOT mockingbird_POPULATED)
-  FetchContent_Populate(MockingBird)
-  add_subdirectory(${mockingbird_SOURCE_DIR} ${mockingbird_BINARY_DIR})
-endif()
+FetchContent_MakeAvailable(MockingBird)
+
+
+file(GLOB ${PROJECT_NAME}_TEST_SOURCE CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+)
 
 # Add tests
-add_executable(${PROJECT_NAME}_tests
-  SocketMocking.cpp
-  test_main.cpp
-  test_Utils.cpp
-  test_Endpoint.cpp
-  test_Socket.cpp
-  test_TLSSocket.cpp
-  test_Exceptions.cpp
-)
+add_executable(${PROJECT_NAME}_tests ${${PROJECT_NAME}_TEST_SOURCE})
 
 # Link required libraries
 target_link_libraries(${PROJECT_NAME}_tests
@@ -64,7 +51,7 @@ include(Catch)
 catch_discover_tests(${PROJECT_NAME}_tests)
 
 # Create coverage target
-if(NOT IS_SUBMODULE)
+if(NOT ${PROJECT_NAME}_IS_SUBMODULE)
 
   if(GCOV AND LCOV AND GENHTML)
     message("Compiler: ${CMAKE_CXX_COMPILER_ID}")
