@@ -13,7 +13,7 @@ endif()
 include(CMakeFiles/HandleGit.cmake)
 
 project(SocketSparrow
-    VERSION ${SANITIZED_VERSION}
+    VERSION ${PROJECT_REVISION}
     DESCRIPTION "A simple Networking Library for C++"
     LANGUAGES CXX
 )
