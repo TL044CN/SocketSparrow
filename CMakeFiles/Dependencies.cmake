@@ -42,6 +42,16 @@ function(addInstalledDependency)
     set(${PROJECT_NAME}_LIBRARIES "${${PROJECT_NAME}_LIBRARIES}" CACHE INTERNAL "")
 endfunction()
 
+check_include_file_cxx("format" HAVE_FORMAT)
+if("${HAVE_FORMAT}" STREQUAL "")
+    addExternalDependency(
+        NAME fmt
+        URL https://github.com/fmtlib/fmt
+        TAG 11.0.2
+        MODULES fmt::fmt
+    )
+endif()
+
 addInstalledDependency(
     NAME OpenSSL
     MODULES OpenSSL::SSL OpenSSL::Crypto
