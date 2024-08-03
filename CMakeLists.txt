@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 set(CMAKE_CXX_STANDARD 20)
 set(CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(DEFINED PROJECT_NAME AND NOT "${PROJECT_NAME}" STREQUAL "")
     set(IS_SUBMODULE ON)
@@ -8,66 +9,30 @@ else()
     set(IS_SUBMODULE OFF)
 endif()
 
-find_package(Git)
-if(GIT_FOUND)
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_TAG_VERSION
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    option(GIT_SUBMODULE "Check submodules during build" ON)
-    if(GIT_SUBMODULE)
-        message(STATUS "Submodule update")
-        execute_process(
-            COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            RESULT_VARIABLE GIT_SUBMODULE_RESULT
-        )
-        if(NOT GIT_SUBMODULE_RESULT EQUAL "0")
-            message(FATAL_ERROR "git submodule update --init failed with ${GIT_SUBMODULE_RESULT}")
-        endif()
-    endif()
-
-else()
-    set(GIT_TAG_VERSION "1.0.0")
-endif()
+# get the version from git
+include(CMakeFiles/HandleGit.cmake)
 
 project(SocketSparrow
     VERSION ${GIT_TAG_VERSION}
     DESCRIPTION "A simple Networking Library for C++"
     LANGUAGES CXX
 )
+
+
+# set the build options
+option(${PROJECT_NAME}_BUILD_SHARED "Build Shared Library" OFF)
+option(${PROJECT_NAME}_BUILD_TESTS "Build Tests" ON)
+option(${PROJECT_NAME}_BUILD_DOCS "Build Documentation" ON)
+
+# modify the build options if this is a submodule
 if(IS_SUBMODULE)
-    message("Building ${PROJECT_NAME} version ${PROJECT_VERSION} as Submodule")
-else()
-    message("Building ${PROJECT_NAME} version ${PROJECT_VERSION}")
+    set(${PROJECT_NAME}_BUILD_TESTS OFF CACHE BOOL "Build Tests" FORCE)
+    set(${PROJECT_NAME}_BUILD_DOCS OFF CACHE BOOL "Build Documentation" FORCE)
 endif()
 
-find_program(LCOV lcov)
-find_program(GENHTML genhtml)
-
-#find correct coverage system
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    find_program(GCOV gcov)
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    find_program(GCOV llvm-cov)
-endif()
-
-if(NOT IS_SUBMODULE)
-    find_package(Doxygen)
-    if(DOXYGEN_FOUND)
-        add_custom_target(documentation
-            COMMAND "doxygen"
-            WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
-            COMMENT "Generating Doxygen Documentation"
-            VERBARIM
-        )
-    else()
-        message("Doxygen required to build Doxygen Documentation")
-    endif()
-endif()
+#print info about the build options
+include(CMakeFiles/Dependencies.cmake)
+include(CMakeFiles/PrintInfo.cmake)
 
 find_package(OpenSSL REQUIRED)
 
@@ -85,11 +50,7 @@ else()
     add_library(${PROJECT_NAME} STATIC ${${PROJECT_NAME}_SOURCES})
 endif()
 
-target_link_libraries(${PROJECT_NAME}
-PUBLIC
-OpenSSL::SSL
-OpenSSL::Crypto
-)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_LIBRARIES})
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
@@ -124,8 +85,34 @@ install(EXPORT ${PROJECT_NAME}Targets
     DESTINATION lib/cmake/${PROJECT_NAME}
 )
 
-#prepare for coverage report
-if(NOT IS_SUBMODULE)
+# build documentation
+if(${PROJECT_NAME}_BUILD_DOCS)
+find_package(Doxygen)
+    if(DOXYGEN_FOUND)
+        add_custom_target(documentation
+            COMMAND "doxygen"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
+            COMMENT "Generating Doxygen Documentation"
+            VERBARIM
+        )
+    else()
+        message("Doxygen required to build Doxygen Documentation")
+    endif()
+endif()
+
+# build tests
+if(${PROJECT_NAME}_BUILD_TESTS)
+    find_program(LCOV lcov)
+    find_program(GENHTML genhtml)
+
+    #find correct coverage system
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        find_program(GCOV gcov)
+    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        find_program(GCOV llvm-cov)
+    endif()
+    
+    #prepare for coverage report
     if(GCOV AND LCOV AND GENHTML)
         if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
             target_compile_options(${PROJECT_NAME} PRIVATE -fprofile-arcs -ftest-coverage)
@@ -134,21 +121,17 @@ if(NOT IS_SUBMODULE)
         endif()
     else()
         if(NOT GCOV)
-            message("gcov not found. No coverage report will be generated.")
+            message(WARNING "gcov not found. No coverage report will be generated.")
         endif()
         if(NOT LCOV)
-            message("lcov not found. No coverage report will be generated.")
+            message(WARNING "lcov not found. No coverage report will be generated.")
         endif()
         if(NOT GENHTML)
-            message("genhtml not found. No coverage report will be generated.")
+            message(WARNING "genhtml not found. No coverage report will be generated.")
         endif()
     endif()
-endif()
-
-set(${PROJECT_NAME}_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-# tests:
-if(NOT IS_SUBMODULE)
+        
+    # tests:
     enable_testing()
     add_subdirectory(tests)
 endif()
